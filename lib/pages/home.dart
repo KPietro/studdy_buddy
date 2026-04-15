@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
+import '../controllers/theme_controller.dart';
+import 'grupo_page.dart'; // Vamos criar esse arquivo no próximo passo!
 
-// 📦 MODELO DE DADOS
-class Grupo {
-  final String nome;
-  final List<String> mensagens;
-
-  Grupo(this.nome, this.mensagens);
-}
-
-// 🏠 HOME
 class HomePage extends StatefulWidget {
   final bool isDark;
 
@@ -27,260 +20,276 @@ class _HomePageState extends State<HomePage> {
     isDark = widget.isDark;
   }
 
-  // 🔥 LISTA DE GRUPOS (fake por enquanto)
-  List<Grupo> grupos = [
-    Grupo("G1", ["Prova amanhã", "Resumo cap 2", "Trabalho grupo"]),
-    Grupo("G2", ["Revisar matemática", "Lista exercícios", "Dúvida aula"]),
-    Grupo("G3", ["História prova", "Resumo guerra", "Atividade"]),
-  ];
-
-  List<Map<String, dynamic>> recentes = [];
-  List<Map<String, dynamic>> filtrados = [];
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    gerarRecentes();
-  }
-
-  void gerarRecentes() {
-    recentes.clear();
-    for (var grupo in grupos) {
-      for (var msg in grupo.mensagens) {
-        recentes.add({"grupo": grupo.nome, "mensagem": msg});
-      }
-    }
-    filtrados = List.from(recentes);
-  }
-
-  void buscar(String texto) {
+  void toggleTheme() async {
+    ThemeController.isDark = !ThemeController.isDark;
+    await ThemeController.saveTheme(ThemeController.isDark);
     setState(() {
-      filtrados = recentes
-          .where(
-            (item) =>
-                item["mensagem"].toLowerCase().contains(texto.toLowerCase()),
-          )
-          .toList();
+      isDark = ThemeController.isDark;
     });
   }
 
-  void toggleTheme() {
-    setState(() {
-      isDark = !isDark;
-    });
-  }
+  // Cores baseadas no seu Figma
+  Color get bgMain =>
+      isDark ? const Color(0xFF160303) : const Color(0xFFEAFaf1);
+  Color get bgSidebar =>
+      isDark ? const Color(0xFF4A0000) : const Color(0xFF4CAF50);
+  Color get textMain => isDark ? Colors.white : Colors.black;
+  Color get pillBg =>
+      isDark ? const Color(0xFF333333) : const Color(0xFFB0B0B0);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Row(
-        children: [
-          // 🔹 CONTEÚDO
-          Expanded(
-            child: Container(
-              color: isDark
-                  ? const Color.fromARGB(255, 82, 15, 15)
-                  : const Color(0xFFDCEFE8),
-              child: Column(
+      backgroundColor: bgMain,
+      body: SafeArea(
+        child: Row(
+          children: [
+            // 🔹 CONTEÚDO PRINCIPAL (ESQUERDA)
+            Expanded(
+              child: Stack(
                 children: [
-                  const SizedBox(height: 40),
-                  // 🔍 TOPO
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      children: [
-                        const CircleAvatar(
-                          backgroundColor: Colors.green,
-                          child: Text("P"),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            onChanged: buscar,
-                            style: TextStyle(
-                              color: isDark ? Colors.white : Colors.black,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: "Buscar mensagens...",
-                              hintStyle: TextStyle(
-                                color: isDark ? Colors.white70 : Colors.grey,
+                  Column(
+                    children: [
+                      // 🔍 TOPO (Avatar + Search)
+                      Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Row(
+                          children: [
+                            const CircleAvatar(
+                              backgroundColor: Colors.green,
+                              radius: 20,
+                              child: Text(
+                                "P",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
+                                ),
                               ),
-                              filled: true,
-                              fillColor: isDark
-                                  ? const Color.fromARGB(255, 60, 10, 10)
-                                  : Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                borderSide: BorderSide.none,
-                              ),
-                              suffixIcon: const Icon(Icons.search),
                             ),
-                          ),
+                            const SizedBox(width: 15),
+                            Expanded(
+                              child: Container(
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: TextField(
+                                  style: TextStyle(color: textMain),
+                                  decoration: InputDecoration(
+                                    hintText: "Texto da pesquisa",
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                    ),
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 15,
+                                      vertical: 10,
+                                    ),
+                                    suffixIcon: Icon(
+                                      Icons.search,
+                                      color: textMain,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        // 🌙 BOTÃO TEMA
-                        IconButton(
-                          onPressed: toggleTheme,
-                          icon: Icon(
-                            isDark ? Icons.light_mode : Icons.dark_mode,
-                            color: isDark ? Colors.white : Colors.black,
-                          ),
+                      ),
+
+                      // Título "Recentes"
+                      Text(
+                        "Recentes",
+                        style: TextStyle(
+                          color: textMain,
+                          fontSize: 28,
+                          fontFamily:
+                              'Comic Sans MS', // Substitua pela fonte exata do Figma depois
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // 📋 LISTA DE RECENTES
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.only(
+                            left: 30,
+                            right: 20,
+                            bottom: 80,
+                          ),
+                          itemCount: 10, // Quantidade mockada
+                          itemBuilder: (context, index) {
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  // Pílula Cinza
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.only(
+                                      left: 40,
+                                      top: 8,
+                                      bottom: 8,
+                                      right: 15,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: pillBg,
+                                      borderRadius: BorderRadius.circular(25),
+                                    ),
+                                    child: const Text(
+                                      "Ablublé tanana bla bla\nbla...",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                  // Avatar sobreposto (vazando para a esquerda)
+                                  Positioned(
+                                    left: -15,
+                                    top: 2,
+                                    child: Stack(
+                                      children: [
+                                        const CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: Colors.green,
+                                          child: Text(
+                                            "P",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          left: 0,
+                                          top: 0,
+                                          child: CircleAvatar(
+                                            radius: 6,
+                                            backgroundColor: Colors.red,
+                                            child: Text(
+                                              "G1",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 5,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // ⚙️ ENGRENAGEM E TEMA (Canto Inferior Esquerdo)
+                  Positioned(
+                    bottom: 20,
+                    left: 20,
+                    child: GestureDetector(
+                      onTap:
+                          toggleTheme, // Usando a engrenagem para trocar o tema por enquanto!
+                      child: Icon(
+                        Icons.settings,
+                        color: isDark ? Colors.red : Colors.greenAccent,
+                        size: 40,
+                      ),
                     ),
                   ),
+                ],
+              ),
+            ),
+
+            // 🔹 SIDEBAR (DIREITA)
+            Container(
+              width: 70,
+              decoration: BoxDecoration(
+                color: bgSidebar,
+                border: Border(
+                  left: BorderSide(
+                    color: isDark ? Colors.red.shade900 : Colors.green.shade800,
+                    width: 2,
+                  ),
+                ),
+              ),
+              child: Column(
+                children: [
                   const SizedBox(height: 20),
-                  // 📋 LISTA
+                  // Botão de Mais
+                  Icon(Icons.add_circle_outline, color: textMain, size: 45),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10),
+                    child: Divider(color: Colors.white54, thickness: 1),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Lista de Grupos
                   Expanded(
                     child: ListView.builder(
-                      padding: const EdgeInsets.all(20),
-                      itemCount: filtrados.length,
+                      itemCount: 8,
                       itemBuilder: (context, index) {
-                        var item = filtrados[index];
+                        bool isG1 = index % 2 == 0;
                         return GestureDetector(
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => ChatPage(
-                                  grupoNome: item["grupo"],
-                                  mensagens: grupos
-                                      .firstWhere(
-                                        (g) => g.nome == item["grupo"],
-                                      )
-                                      .mensagens,
+                                builder: (context) => GrupoPage(
                                   isDark: isDark,
+                                  grupoNome: isG1 ? "G1" : "G2",
                                 ),
                               ),
                             );
                           },
                           child: Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 15),
                             decoration: BoxDecoration(
-                              color: isDark
-                                  ? const Color.fromARGB(255, 60, 10, 10)
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(10),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
                             ),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 12,
-                                  backgroundColor: Colors.green,
-                                  child: Text(
-                                    item["grupo"],
-                                    style: const TextStyle(fontSize: 10),
-                                  ),
+                            child: CircleAvatar(
+                              radius: 20,
+                              backgroundColor: isG1
+                                  ? Colors.red
+                                  : Colors.greenAccent,
+                              child: Text(
+                                isG1 ? "G1" : "G2",
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
                                 ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    item["mensagem"],
-                                    style: TextStyle(
-                                      color: isDark
-                                          ? Colors.white
-                                          : Colors.black,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         );
                       },
                     ),
                   ),
+
+                  // Ícone de Mensagem no final
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Icon(
+                      Icons.email_outlined,
+                      color: textMain,
+                      size: 40,
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-          // 🔹 SIDEBAR (GRUPOS)
-          Container(
-            width: 60,
-            color: isDark ? Colors.black : const Color(0xFF0F766E),
-            child: Column(
-              children: [
-                const SizedBox(height: 100),
-                for (var grupo in grupos)
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatPage(
-                            grupoNome: grupo.nome,
-                            mensagens: grupo.mensagens,
-                            isDark: isDark,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: CircleAvatar(
-                        radius: 12,
-                        backgroundColor: grupo.nome == "G1"
-                            ? Colors.red
-                            : Colors.green,
-                        child: Text(
-                          grupo.nome,
-                          style: const TextStyle(fontSize: 8),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ChatPage extends StatelessWidget {
-  final String grupoNome;
-  final List<String> mensagens;
-  final bool isDark;
-
-  const ChatPage({
-    super.key,
-    required this.grupoNome,
-    required this.mensagens,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(grupoNome),
-        backgroundColor: isDark ? Colors.red : const Color(0xFF1ABC9C),
-      ),
-      body: Container(
-        color: isDark
-            ? const Color.fromARGB(255, 82, 15, 15)
-            : const Color(0xFFDCEFE8),
-        child: ListView.builder(
-          padding: const EdgeInsets.all(20),
-          itemCount: mensagens.length,
-          itemBuilder: (context, index) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? const Color.fromARGB(255, 60, 10, 10)
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                mensagens[index],
-                style: TextStyle(color: isDark ? Colors.white : Colors.black),
-              ),
-            );
-          },
+          ],
         ),
       ),
     );
