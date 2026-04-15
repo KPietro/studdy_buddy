@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Import do Firebase Auth
 
-// O "../" significa "volte uma pasta", saia de 'pages' e entre em 'controllers'
 import '../controllers/theme_controller.dart';
-
-// Como o home.dart está na mesma pasta, é só chamar direto:
 import 'home.dart';
+import 'cadastro.dart'; // Import da tela de cadastro, se o usuário não tiver conta
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,6 +14,8 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool isLoading = true;
+  bool isLoggingIn = false; // Controle da animação de loading no botão
+
   final emailController = TextEditingController();
   final senhaController = TextEditingController();
 
@@ -37,17 +38,55 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {});
   }
 
-  Future<void> login(String email, String senha) async {
-    await Future.delayed(const Duration(seconds: 2));
+  // 🔥 FUNÇÃO DE LOGIN REAL COM FIREBASE
+  Future<void> fazerLogin() async {
+    // 1. Verifica se os campos não estão vazios
+    if (emailController.text.isEmpty || senhaController.text.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Preencha todos os campos")));
+      return;
+    }
 
-    if (email == "admin@gmail.com" && senha == "123") {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login realizado com sucesso!")),
+    // 2. Inicia o loading no botão
+    setState(() => isLoggingIn = true);
+
+    try {
+      // 3. Tenta fazer login no Firebase Auth
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailController.text.trim(), // Remove espaços em branco
+        password: senhaController.text.trim(),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email ou senha incorretos")),
-      );
+
+      // 4. Se passou sem erro, vai para a Home!
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomePage(isDark: ThemeController.isDark),
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      // 5. Trata os erros comuns (e-mail errado, senha errada, etc.)
+      String mensagemErro = "Erro ao fazer login. Tente novamente.";
+
+      if (e.code == 'user-not-found' || e.code == 'invalid-email') {
+        mensagemErro = 'Nenhum usuário encontrado com este e-mail.';
+      } else if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        mensagemErro = 'E-mail ou senha incorretos.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(mensagemErro)));
+      }
+    } finally {
+      // 6. Para o loading de qualquer jeito (dando certo ou erro)
+      if (mounted) {
+        setState(() => isLoggingIn = false);
+      }
     }
   }
 
@@ -65,6 +104,7 @@ class _LoginPageState extends State<LoginPage> {
         child: Stack(
           key: ValueKey(isDark),
           children: [
+            // 🔥 FUNDO DEGRADÊ
             AnimatedContainer(
               duration: const Duration(milliseconds: 500),
               decoration: BoxDecoration(
@@ -80,6 +120,8 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
             ),
+
+            // 🔥 IMAGEM DE FUNDO (BALÕES)
             Positioned.fill(
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 500),
@@ -90,6 +132,8 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
             ),
+
+            // 🔥 BOTÃO TEMA
             Positioned(
               top: 40,
               right: 20,
@@ -101,131 +145,205 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
             ),
+
+            // 🔹 CONTEÚDO CENTRAL
             Center(
-              child: AnimatedScale(
-                duration: const Duration(milliseconds: 400),
-                scale: 1,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 500),
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        border: Border.all(
+              child: SingleChildScrollView(
+                // Para não quebrar a tela se o teclado abrir
+                child: AnimatedScale(
+                  duration: const Duration(milliseconds: 400),
+                  scale: 1,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // 🔹 LOGO
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 500),
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.black
+                                : const Color(0xFF1ABC9C),
+                            width: 4,
+                          ),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.asset(
+                            isDark
+                                ? 'assets/logo.png'
+                                : 'assets/logobranca.png',
+                            width: 100,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // 🔹 CARD DE LOGIN
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 500),
+                        width: 320,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
                           color: isDark
-                              ? Colors.black
-                              : const Color(0xFF1ABC9C),
-                          width: 4,
+                              ? const Color.fromARGB(255, 82, 15, 15)
+                              : const Color(0xFF9FB8A3),
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.asset(
-                          isDark ? 'assets/logo.png' : 'assets/logobranca.png',
-                          width: 100,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 500),
-                      width: 320,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color.fromARGB(255, 82, 15, 15)
-                            : const Color(0xFF9FB8A3),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "E-mail:",
-                            style: TextStyle(
-                              color: isDark ? Colors.white : Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          TextField(
-                            controller: emailController,
-                            style: TextStyle(
-                              color: isDark ? Colors.white : Colors.black,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: "Exemplo@gmail.com",
-                              hintStyle: TextStyle(
-                                color: isDark ? Colors.white70 : Colors.grey,
-                              ),
-                              filled: true,
-                              fillColor: isDark
-                                  ? const Color.fromARGB(255, 60, 10, 10)
-                                  : Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide.none,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "E-mail:",
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 15),
-                          Text(
-                            "Senha:",
-                            style: TextStyle(
-                              color: isDark ? Colors.white : Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          TextField(
-                            controller: senhaController,
-                            obscureText: true,
-                            style: TextStyle(
-                              color: isDark ? Colors.white : Colors.black,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: "ExemploSenha123",
-                              hintStyle: TextStyle(
-                                color: isDark ? Colors.white70 : Colors.grey,
+                            const SizedBox(height: 5),
+                            TextField(
+                              controller: emailController,
+                              keyboardType: TextInputType
+                                  .emailAddress, // Ajuda no teclado do celular
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
                               ),
-                              filled: true,
-                              fillColor: isDark
-                                  ? const Color.fromARGB(255, 60, 10, 10)
-                                  : Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide.none,
+                              decoration: InputDecoration(
+                                hintText: "Exemplo@gmail.com",
+                                hintStyle: TextStyle(
+                                  color: isDark ? Colors.white70 : Colors.grey,
+                                ),
+                                filled: true,
+                                fillColor: isDark
+                                    ? const Color.fromARGB(255, 60, 10, 10)
+                                    : Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => HomePage(
-                                      isDark: ThemeController.isDark,
+                            const SizedBox(height: 15),
+                            Text(
+                              "senha:",
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            TextField(
+                              controller: senhaController,
+                              obscureText: true,
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: "ExemplosSenha123",
+                                hintStyle: TextStyle(
+                                  color: isDark ? Colors.white70 : Colors.grey,
+                                ),
+                                filled: true,
+                                fillColor: isDark
+                                    ? const Color.fromARGB(255, 60, 10, 10)
+                                    : Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            // 🔹 BOTÃO ENTRAR
+                            SizedBox(
+                              width: double.infinity,
+                              height: 45,
+                              child: ElevatedButton(
+                                onPressed: isLoggingIn
+                                    ? null
+                                    : fazerLogin, // Trava o botão durante o login
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isDark
+                                      ? const Color.fromARGB(255, 218, 43, 43)
+                                      : const Color(0xFF4CAF50),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    side: BorderSide(
+                                      color: isDark
+                                          ? Colors.black
+                                          : Colors.black45,
+                                      width: 2,
                                     ),
                                   ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: isDark
-                                    ? const Color.fromARGB(255, 218, 43, 43)
-                                    : const Color(0xFF4CAF50),
+                                ),
+                                child: isLoggingIn
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text(
+                                        "Entrar",
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                               ),
-                              child: const Text("Entrar"),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 15),
+
+                            // 🔹 LINK PARA CADASTRO
+                            Center(
+                              child: GestureDetector(
+                                onTap: () {
+                                  // Navega para a página de Cadastro
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const CadastroPage(),
+                                    ),
+                                  );
+                                },
+                                child: RichText(
+                                  text: TextSpan(
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black,
+                                      fontSize: 12,
+                                    ),
+                                    children: [
+                                      const TextSpan(
+                                        text: "Não possui uma conta? ",
+                                      ),
+                                      TextSpan(
+                                        text: "Cadastrar",
+                                        style: TextStyle(
+                                          color: isDark
+                                              ? Colors.red
+                                              : Colors.green[800],
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

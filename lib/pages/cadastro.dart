@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CadastroPage extends StatefulWidget {
   const CadastroPage({super.key});
@@ -25,19 +25,34 @@ class _CadastroPageState extends State<CadastroPage> {
 
     setState(() => loading = true);
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString("email", emailController.text);
-    await prefs.setString("senha", senhaController.text);
+    try {
+      // O Firebase cria o usuário e já salva no banco de dados de Auth dele!
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailController.text.trim(), // .trim() tira espaços sem querer
+        password: senhaController.text.trim(),
+      );
 
-    await Future.delayed(const Duration(seconds: 1));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Conta criada com sucesso!")),
+      );
 
-    setState(() => loading = false);
+      // Volta para a tela de login
+      if (mounted) Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      // Se der erro (ex: email já existe, senha fraca), ele avisa o usuário
+      String mensagemErro = "Erro ao cadastrar";
+      if (e.code == 'weak-password') {
+        mensagemErro = 'A senha é muito fraca (mínimo 6 caracteres).';
+      } else if (e.code == 'email-already-in-use') {
+        mensagemErro = 'Esse e-mail já está cadastrado.';
+      }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Conta criada com sucesso!")));
-
-    Navigator.pop(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(mensagemErro)));
+    } finally {
+      setState(() => loading = false);
+    }
   }
 
   @override
