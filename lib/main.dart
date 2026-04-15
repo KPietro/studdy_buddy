@@ -1,34 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'; // Necessário para o kReleaseMode
-import 'package:device_preview/device_preview.dart'; // O pacote mágico
+import 'package:flutter/foundation.dart';
+import 'package:device_preview/device_preview.dart';
 
-import 'ranking_semanal.dart'; // O arquivo que criamos na resposta anterior
+// Esses dois são os que importam o ThemeController e a LoginPage
+import 'controllers/theme_controller.dart';
+import 'pages/login.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ThemeController.loadTheme();
+
   runApp(
     DevicePreview(
-      // O device preview só vai aparecer enquanto você estiver desenvolvendo (debug).
-      // Quando gerar o app final pro usuário, ele some automaticamente.
       enabled: !kReleaseMode,
-      builder: (context) => const MeuProjetoApp(),
+      builder: (context) => const StuddyBuddyApp(),
     ),
   );
 }
 
-class MeuProjetoApp extends StatelessWidget {
-  const MeuProjetoApp({super.key});
+class StuddyBuddyApp extends StatelessWidget {
+  const StuddyBuddyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      // Estas 3 linhas abaixo são obrigatórias para o DevicePreview funcionar
       useInheritedMediaQuery: true,
       locale: DevicePreview.locale(context),
       builder: DevicePreview.appBuilder,
-
       debugShowCheckedModeBanner: false,
-      title: 'Projeto Senac',
-      home: const RankingSemanal(),
+      title: 'Studdy-Buddy',
+      home: const LoginPage(),
     );
   }
 }

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:curved_navigation_bar/curved_navigation_bar.dart'; // Importação do pacote da curva
-import 'ranking_semanal.dart'; // Importe o outro arquivo aqui
+import 'ranking_total.dart'; // Importe o outro arquivo aqui
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 
-class RankingTotal extends StatefulWidget {
-  const RankingTotal({super.key});
+class RankingSemanal extends StatefulWidget {
+  const RankingSemanal({super.key});
 
   @override
-  State<RankingTotal> createState() => _RankingTotalState();
+  State<RankingSemanal> createState() => _RankingSemanalState();
 }
 
-class _RankingTotalState extends State<RankingTotal> {
-  bool isTemaEscuro = true;
+class _RankingSemanalState extends State<RankingSemanal> {
+  bool isTemaEscuro = true; // Controle do tema nesta tela
 
   // Paleta de Cores
   final Color bgEscuro = const Color(0xFF2B0505);
@@ -18,32 +18,20 @@ class _RankingTotalState extends State<RankingTotal> {
   final Color bgClaro = const Color(0xFFEAFaf1);
   final Color baseClara = const Color(0xFF4CAF50);
   final Color verdemeiescuro = const Color.fromRGBO(25, 170, 45, 1);
+  final Color verdeEscuro = const Color(0xFF00AA00);
   final Color verdeNeon = const Color.fromARGB(255, 55, 255, 20);
 
-  // Dados do Total (Pontuações maiores)
-  final List<Map<String, dynamic>> jogadores = List.generate(15, (index) {
-    String nome;
-    int pontos;
-
-    if (index == 0) {
-      nome = "Brayan Henrique";
-      pontos = 90000;
-    } else if (index == 1) {
-      nome = "Pietro Lagos";
-      pontos = 80000;
-    } else if (index == 2) {
-      nome = "Tim";
-      pontos = 40000;
-    } else if (index == 3) {
-      nome = "Pietro henry";
-      pontos = 9000;
-    } else {
-      nome = "Brayan Henrique";
-      pontos = 30000;
-    }
-
-    return {"posicao": index + 1, "nome": nome, "pontos": pontos};
-  });
+  // Dados do Semanal
+  final List<Map<String, dynamic>> jogadores = List.generate(
+    15,
+    (index) => {
+      "posicao": index + 1,
+      "nome": index == 1
+          ? "Pietro Lagos"
+          : (index == 2 ? "Tim" : "Brayan Henrique"),
+      "pontos": 30000 - (index * 1000),
+    },
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +63,6 @@ class _RankingTotalState extends State<RankingTotal> {
     );
   }
 
-  // --- CABEÇALHO ---
   Widget _buildHeader(bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
@@ -94,7 +81,8 @@ class _RankingTotalState extends State<RankingTotal> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Ranking Total',
+                  '  Ranking Semanal',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
@@ -103,8 +91,8 @@ class _RankingTotalState extends State<RankingTotal> {
                 ),
                 const SizedBox(width: 10),
                 const Icon(
-                  Icons.workspace_premium,
-                  color: Colors.yellow,
+                  Icons.emoji_events,
+                  color: Colors.deepOrange,
                   size: 30,
                 ),
               ],
@@ -116,55 +104,72 @@ class _RankingTotalState extends State<RankingTotal> {
     );
   }
 
-  // --- PÓDIO 3D ---
   Widget _buildPodio(bool isDark) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        _buildPilar(2, 142, isDark),
-        const SizedBox(width: 15),
-        _buildPilar(1, 160, isDark),
-        const SizedBox(width: 15),
-        _buildPilar(3, 124, isDark),
-      ],
+    // Envolvi o pódio em um SizedBox com altura fixa (250) para garantir que
+    // a animação cresça de baixo para cima sem empurrar a lista para baixo.
+    return SizedBox(
+      height: 250,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          _buildPilar(2, 130, isDark),
+          const SizedBox(width: 15),
+          _buildPilar(1, 180, isDark),
+          const SizedBox(width: 15),
+          _buildPilar(3, 110, isDark),
+        ],
+      ),
     );
   }
 
-  Widget _buildPilar(int posicao, double altura, bool isDark) {
+  Widget _buildPilar(int posicao, double alturaAlvo, bool isDark) {
     const double larguraFrente = 50.0;
-    const double depth = 15.0;
-    const double angle = 0.5;
-    final double dy = depth * angle;
+    const double depth = 15.0; // Profundidade do 3D
+    const double angle = 0.5; // Inclinação
+    final double dy = depth * angle; // O espaço que a tampa ocupa para cima
 
-    final colorFront = isDark ? Colors.greenAccent : Colors.greenAccent[400]!;
-    final colorSide = isDark ? Colors.green[800]! : Colors.green[700]!;
-    final colorTop = isDark ? Colors.green[900]! : Colors.green[800]!;
+    // Cores EXATAS e fixas, sem mudar com o tema claro/escuro
+    final Color colorFront = Colors.greenAccent;
+    final Color colorSide = Colors.green[800]!;
+    final Color colorTop = Colors.green[900]!;
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: isDark ? Colors.grey[800] : Colors.grey[400],
-          child: const Icon(Icons.person, color: Colors.white),
-        ),
-        const SizedBox(height: 10),
+    // O TweenAnimationBuilder é a mágica que faz o gráfico sair do zero e subir!
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(
+        begin: 0.0,
+        end: alturaAlvo,
+      ), // Vai do 0 até a altura alvo
+      duration: const Duration(milliseconds: 1500), // 1.5 segundos de animação
+      curve:
+          Curves.easeOutCubic, // Curva suave (começa rápido e freia no final)
+      builder: (context, alturaAnimada, child) {
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[400],
+              child: const Icon(Icons.person, color: Colors.white),
+            ),
+            const SizedBox(height: 10),
 
-        CustomPaint(
-          size: Size(larguraFrente + depth, altura + dy),
-          painter: PillarPainter(
-            altura: altura,
-            colorFront: colorFront,
-            colorSide: colorSide,
-            colorTop: colorTop,
-          ),
-        ),
-      ],
+            // O CustomPaint agora usa a "alturaAnimada" que está crescendo a cada frame
+            CustomPaint(
+              size: Size(larguraFrente + depth, alturaAnimada + dy),
+              painter: PillarPainter(
+                altura: alturaAnimada, // Passa o valor animado para o pintor
+                colorFront: colorFront,
+                colorSide: colorSide,
+                colorTop: colorTop,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  // --- LISTA DE JOGADORES ---
   Widget _buildLista(bool isDark) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -228,6 +233,22 @@ class _RankingTotalState extends State<RankingTotal> {
                   ),
                 ),
               ),
+              Container(
+                margin: const EdgeInsets.only(left: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color.fromRGBO(199, 0, 0, 1),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: Text(
+                  'QTT:10',
+                  style: const TextStyle(
+                    color: Color.fromRGBO(2555, 255, 255, 1),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
             ],
           ),
         );
@@ -238,31 +259,24 @@ class _RankingTotalState extends State<RankingTotal> {
   // --- BARRA INFERIOR CURVADA ---
   Widget _buildBottomBar(bool isDark, BuildContext context) {
     return CurvedNavigationBar(
-      // A cor do fundo tem que ser a mesma do Scaffold
       backgroundColor: isDark ? bgEscuro : bgClaro,
-      // A cor da barra e do botão flutuante
       color: isDark ? baseEscura : baseClara,
       buttonBackgroundColor: isDark ? baseEscura : baseClara,
       height: 60,
       animationDuration: const Duration(milliseconds: 300),
-
-      // AQUI ESTÁ O SEGREDO DO TOTAL: O index inicial é 1 (o segundo botão)
-      index: 1,
-
+      index: 0,
       items: const <Widget>[
         Icon(Icons.emoji_events, color: Colors.deepOrange, size: 30),
         Icon(Icons.workspace_premium, color: Colors.yellow, size: 30),
       ],
-
       onTap: (index) {
-        // Se clicar no troféu laranja (index 0), volta para o Semanal
-        if (index == 0) {
+        if (index == 1) {
           Future.delayed(const Duration(milliseconds: 300), () {
             Navigator.pushReplacement(
               context,
               PageRouteBuilder(
                 pageBuilder: (context, animation1, animation2) =>
-                    const RankingSemanal(),
+                    const RankingTotal(),
                 transitionDuration: Duration.zero,
               ),
             );
@@ -273,9 +287,6 @@ class _RankingTotalState extends State<RankingTotal> {
   }
 }
 
-// ==========================================
-// CLASSE DO PILAR 3D
-// ==========================================
 class PillarPainter extends CustomPainter {
   final double altura;
   final Color colorFront;
@@ -291,8 +302,11 @@ class PillarPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const double W = 50.0;
-    const double D = 15.0;
+    // Se a altura for muito pequena, não desenha para evitar bugs visuais
+    if (altura <= 0.1) return;
+
+    const double W = 50.0; // Largura da frente
+    const double D = 15.0; // Profundidade
     const double angle = 0.5;
     final double Dy = D * angle;
 
@@ -345,6 +359,7 @@ class PillarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant PillarPainter oldDelegate) {
+    // Só redesenha se a altura mudar (Performance 100%)
     return oldDelegate.altura != altura;
   }
 }

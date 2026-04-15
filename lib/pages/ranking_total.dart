@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'ranking_total.dart'; // Importe o outro arquivo aqui
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import 'package:curved_navigation_bar/curved_navigation_bar.dart'; // Importação do pacote da curva
+import 'ranking_semanal.dart'; // Importe o outro arquivo aqui
 
-class RankingSemanal extends StatefulWidget {
-  const RankingSemanal({super.key});
+class RankingTotal extends StatefulWidget {
+  const RankingTotal({super.key});
 
   @override
-  State<RankingSemanal> createState() => _RankingSemanalState();
+  State<RankingTotal> createState() => _RankingTotalState();
 }
 
-class _RankingSemanalState extends State<RankingSemanal> {
-  bool isTemaEscuro = true; // Controle do tema nesta tela
+class _RankingTotalState extends State<RankingTotal> {
+  bool isTemaEscuro = true;
 
   // Paleta de Cores
   final Color bgEscuro = const Color(0xFF2B0505);
@@ -18,10 +18,9 @@ class _RankingSemanalState extends State<RankingSemanal> {
   final Color bgClaro = const Color(0xFFEAFaf1);
   final Color baseClara = const Color(0xFF4CAF50);
   final Color verdemeiescuro = const Color.fromRGBO(25, 170, 45, 1);
-  final Color verdeEscuro = const Color(0xFF00AA00);
   final Color verdeNeon = const Color.fromARGB(255, 55, 255, 20);
 
-  // Dados do Semanal
+  // Dados do Total (Pontuações maiores)
   final List<Map<String, dynamic>> jogadores = List.generate(
     15,
     (index) => {
@@ -29,7 +28,7 @@ class _RankingSemanalState extends State<RankingSemanal> {
       "nome": index == 1
           ? "Pietro Lagos"
           : (index == 2 ? "Tim" : "Brayan Henrique"),
-      "pontos": 30000 - (index * 1000),
+      "pontos": 300000 - (index * 1000),
     },
   );
 
@@ -63,6 +62,7 @@ class _RankingSemanalState extends State<RankingSemanal> {
     );
   }
 
+  // --- CABEÇALHO ---
   Widget _buildHeader(bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
@@ -76,12 +76,14 @@ class _RankingSemanalState extends State<RankingSemanal> {
               onPressed: () {},
             ),
           ),
+
           Expanded(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Ranking Semanal',
+                  'Ranking Total',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
@@ -90,8 +92,8 @@ class _RankingSemanalState extends State<RankingSemanal> {
                 ),
                 const SizedBox(width: 10),
                 const Icon(
-                  Icons.emoji_events,
-                  color: Colors.deepOrange,
+                  Icons.workspace_premium,
+                  color: Colors.yellow,
                   size: 30,
                 ),
               ],
@@ -103,55 +105,65 @@ class _RankingSemanalState extends State<RankingSemanal> {
     );
   }
 
+  // --- PÓDIO 3D ---
   Widget _buildPodio(bool isDark) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        _buildPilar(1, 130, isDark),
-        const SizedBox(width: 15),
-        _buildPilar(1, 180, isDark),
-        const SizedBox(width: 15),
-        _buildPilar(3, 110, isDark),
-      ],
+    return SizedBox(
+      height: 250,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          _buildPilar(2, 142, isDark),
+          const SizedBox(width: 15),
+          _buildPilar(1, 160, isDark),
+          const SizedBox(width: 15),
+          _buildPilar(3, 124, isDark),
+        ],
+      ),
     );
   }
 
   Widget _buildPilar(int posicao, double altura, bool isDark) {
     const double larguraFrente = 50.0;
-    const double depth = 15.0; // Profundidade do 3D
-    const double angle = 0.5; // Inclinação
-    final double dy = depth * angle; // O espaço que a tampa ocupa para cima
-
-    // Ajuste aqui para as cores reais do seu app
+    const double depth = 15.0;
+    const double angle = 0.5;
+    final double dy = depth * angle;
+    int alturaquero = altura.toInt();
     final colorFront = isDark ? Colors.greenAccent : Colors.greenAccent[400]!;
     final colorSide = isDark ? Colors.green[800]! : Colors.green[700]!;
     final colorTop = isDark ? Colors.green[900]! : Colors.green[800]!;
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: isDark ? Colors.grey[800] : Colors.grey[400],
-          child: const Icon(Icons.person, color: Colors.white),
-        ),
-        const SizedBox(height: 10),
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: altura),
+      duration: Duration(milliseconds: 10 * alturaquero),
+      curve: Curves.easeOutCubic,
+      builder: (context, alturaAnimada, child) {
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[400],
+              child: const Icon(Icons.person, color: Colors.white),
+            ),
+            const SizedBox(height: 10),
 
-        // O CustomPaint faz todo o trabalho de desenhar as 3 faces!
-        CustomPaint(
-          size: Size(larguraFrente + depth, altura + dy),
-          painter: PillarPainter(
-            altura: altura,
-            colorFront: colorFront,
-            colorSide: colorSide,
-            colorTop: colorTop,
-          ),
-        ),
-      ],
+            CustomPaint(
+              size: Size(larguraFrente + depth, alturaAnimada + dy),
+              painter: PillarPainter(
+                altura: alturaAnimada,
+                colorFront: colorFront,
+                colorSide: colorSide,
+                colorTop: colorTop,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
+  // --- LISTA DE JOGADORES ---
   Widget _buildLista(bool isDark) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -199,7 +211,7 @@ class _RankingSemanalState extends State<RankingSemanal> {
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 23,
+                  horizontal: 22,
                   vertical: 3,
                 ),
                 decoration: BoxDecoration(
@@ -215,6 +227,22 @@ class _RankingSemanalState extends State<RankingSemanal> {
                   ),
                 ),
               ),
+              Container(
+                margin: const EdgeInsets.only(left: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color.fromRGBO(199, 0, 0, 1),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: Text(
+                  'QTT:10',
+                  style: const TextStyle(
+                    color: Color.fromRGBO(2555, 255, 255, 1),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
             ],
           ),
         );
@@ -222,21 +250,19 @@ class _RankingSemanalState extends State<RankingSemanal> {
     );
   }
 
-  // --- BARRA INFERIOR CURVADA (Estilo CSS) ---
+  // --- BARRA INFERIOR CURVADA ---
   Widget _buildBottomBar(bool isDark, BuildContext context) {
     return CurvedNavigationBar(
-      // A cor do fundo por trás da curva (precisa ser a mesma cor do Scaffold para dar o efeito de transparência)
+      // A cor do fundo tem que ser a mesma do Scaffold
       backgroundColor: isDark ? bgEscuro : bgClaro,
-      // A cor da barra em si
+      // A cor da barra e do botão flutuante
       color: isDark ? baseEscura : baseClara,
-      // Cor do botão circular que flutua na curva
       buttonBackgroundColor: isDark ? baseEscura : baseClara,
-      // Altura da barra
       height: 60,
-      // Tempo da animação da onda
       animationDuration: const Duration(milliseconds: 300),
-      // O ícone que começa selecionado (0 = Semanal, 1 = Total)
-      index: 0,
+
+      // AQUI ESTÁ O SEGREDO DO TOTAL: O index inicial é 1 (o segundo botão)
+      index: 1,
 
       items: const <Widget>[
         Icon(Icons.emoji_events, color: Colors.deepOrange, size: 30),
@@ -244,15 +270,14 @@ class _RankingSemanalState extends State<RankingSemanal> {
       ],
 
       onTap: (index) {
-        // Se clicar no ícone 1 (Ranking Total), ele navega
-        if (index == 1) {
-          // Pequeno delay para dar tempo de ver a animação da curva antes de trocar de tela
+        // Se clicar no troféu laranja (index 0), volta para o Semanal
+        if (index == 0) {
           Future.delayed(const Duration(milliseconds: 300), () {
             Navigator.pushReplacement(
               context,
               PageRouteBuilder(
                 pageBuilder: (context, animation1, animation2) =>
-                    const RankingTotal(),
+                    const RankingSemanal(),
                 transitionDuration: Duration.zero,
               ),
             );
@@ -263,6 +288,9 @@ class _RankingSemanalState extends State<RankingSemanal> {
   }
 }
 
+// ==========================================
+// CLASSE DO PILAR 3D
+// ==========================================
 class PillarPainter extends CustomPainter {
   final double altura;
   final Color colorFront;
@@ -278,12 +306,11 @@ class PillarPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const double W = 50.0; // Largura da frente
-    const double D = 15.0; // Profundidade
+    const double W = 50.0;
+    const double D = 15.0;
     const double angle = 0.5;
     final double Dy = D * angle;
 
-    // Configurando as tintas para preenchimento
     final paintFront = Paint()
       ..color = colorFront
       ..style = PaintingStyle.fill;
@@ -294,45 +321,38 @@ class PillarPainter extends CustomPainter {
       ..color = colorTop
       ..style = PaintingStyle.fill;
 
-    // Configurando a tinta para as bordas pretas
     final paintBorder = Paint()
       ..color = Colors.black
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
-    // O "chão" da nossa pintura fica no limite inferior do widget
     final base = altura + Dy;
 
-    // 1. Desenhando a Face Frontal
     final pathFront = Path()
-      ..moveTo(0, base) // Quina inferior esquerda
-      ..lineTo(W, base) // Quina inferior direita
-      ..lineTo(W, Dy) // Quina superior direita
-      ..lineTo(0, Dy) // Quina superior esquerda
+      ..moveTo(0, base)
+      ..lineTo(W, base)
+      ..lineTo(W, Dy)
+      ..lineTo(0, Dy)
       ..close();
 
-    // 2. Desenhando a Face Lateral (Direita)
     final pathSide = Path()
-      ..moveTo(W, base) // Conecta com a quina inferior direita da frente
-      ..lineTo(W + D, base - Dy) // Vai pro fundo e sobe
-      ..lineTo(W + D, 0) // Sobe até o topo do fundo
-      ..lineTo(W, Dy) // Conecta com a quina superior direita da frente
+      ..moveTo(W, base)
+      ..lineTo(W + D, base - Dy)
+      ..lineTo(W + D, 0)
+      ..lineTo(W, Dy)
       ..close();
 
-    // 3. Desenhando a Face Superior (Tampa)
     final pathTop = Path()
-      ..moveTo(0, Dy) // Conecta com a quina superior esquerda da frente
-      ..lineTo(W, Dy) // Conecta com a quina superior direita da frente
-      ..lineTo(W + D, 0) // Vai pro fundo à direita
-      ..lineTo(D, 0) // Vai pro fundo à esquerda
+      ..moveTo(0, Dy)
+      ..lineTo(W, Dy)
+      ..lineTo(W + D, 0)
+      ..lineTo(D, 0)
       ..close();
 
-    // Pinta as cores das faces
     canvas.drawPath(pathFront, paintFront);
     canvas.drawPath(pathSide, paintSide);
     canvas.drawPath(pathTop, paintTop);
 
-    // Pinta as linhas de contorno (bordas) por cima de tudo
     canvas.drawPath(pathFront, paintBorder);
     canvas.drawPath(pathSide, paintBorder);
     canvas.drawPath(pathTop, paintBorder);
@@ -340,7 +360,6 @@ class PillarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant PillarPainter oldDelegate) {
-    // Só redesenha se a altura mudar (Performance 100%)
     return oldDelegate.altura != altura;
   }
 }
