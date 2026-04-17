@@ -39,26 +39,40 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // 🔥 FUNÇÃO DE LOGIN REAL COM FIREBASE
+  // 🔥 FUNÇÃO DE LOGIN REAL + ATALHO DE EMERGÊNCIA
   Future<void> fazerLogin() async {
     // 1. Verifica se os campos não estão vazios
     if (emailController.text.isEmpty || senhaController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Preencha todos os campos")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Preencha todos os campos")),
+      );
       return;
+    }
+
+    // ==========================================
+    // 🚨 ATALHO DE EMERGÊNCIA (SÓ PARA HOJE) 🚨
+    // Digite "admin" no email e "123" na senha para pular o Firebase
+    // ==========================================
+    if (emailController.text.trim() == "admin" && senhaController.text == "123") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomePage(isDark: ThemeController.isDark),
+        ),
+      );
+      return; // Para a função aqui e não chama o Firebase
     }
 
     // 2. Inicia o loading no botão
     setState(() => isLoggingIn = true);
 
     try {
-      // 3. Tenta fazer login no Firebase Auth
+      // 3. Tenta fazer login no Firebase Auth (Isso vai falhar no PC novo se não tiver o JSON)
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(), // Remove espaços em branco
+        email: emailController.text.trim(), 
         password: senhaController.text.trim(),
       );
 
-      // 4. Se passou sem erro, vai para a Home!
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -68,22 +82,16 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      // 5. Trata os erros comuns (e-mail errado, senha errada, etc.)
       String mensagemErro = "Erro ao fazer login. Tente novamente.";
-
       if (e.code == 'user-not-found' || e.code == 'invalid-email') {
         mensagemErro = 'Nenhum usuário encontrado com este e-mail.';
       } else if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
         mensagemErro = 'E-mail ou senha incorretos.';
       }
-
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(mensagemErro)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensagemErro)));
       }
     } finally {
-      // 6. Para o loading de qualquer jeito (dando certo ou erro)
       if (mounted) {
         setState(() => isLoggingIn = false);
       }
