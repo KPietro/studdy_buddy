@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'ranking_semanal.dart'; // Importando para o botão do pódio funcionar
+import 'criacao_grupo.dart';
+import 'registro_atividade.dart'; // Importando para o botão de "+" funcionar
 
 class GrupoPage extends StatelessWidget {
   final bool isDark;
@@ -123,11 +125,12 @@ class GrupoPage extends StatelessWidget {
                   // Ícones da Direita
                   Row(
                     children: [
-                      const Icon(
-                        Icons.add_circle_outline,
-                        color: Colors.white,
-                        size: 45,
-                      ),
+                     GestureDetector(
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => RegistroAtividadePage(isDark: isDark)));
+                      },
+                      child: const Icon(Icons.add_circle_outline, color: Colors.white, size: 45),
+                    ),
                       const SizedBox(width: 15),
                       const Icon(
                         Icons.email_outlined,

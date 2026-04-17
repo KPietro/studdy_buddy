@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../controllers/theme_controller.dart';
+import 'criacao_grupo.dart';
 import 'grupo_page.dart'; // Vamos criar esse arquivo no próximo passo!
 
 class HomePage extends StatefulWidget {
@@ -226,7 +227,12 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   const SizedBox(height: 20),
                   // Botão de Mais
-                  Icon(Icons.add_circle_outline, color: textMain, size: 45),
+                  GestureDetector(
+                    onTap: () {
+                   Navigator.push(context, MaterialPageRoute(builder: (context) => CriacaoGrupoPage(isDark: isDark)));
+                  },
+                  child: Icon(Icons.add_circle_outline, color: textMain, size: 45),
+                  ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 10),
                     child: Divider(color: Colors.white54, thickness: 1),
