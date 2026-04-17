@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../controllers/theme_controller.dart';
 import 'criacao_grupo.dart';
+import 'chats_recentes.dart';
+import 'registro_atividade.dart';
 import 'grupo_page.dart'; // Vamos criar esse arquivo no próximo passo!
 
 class HomePage extends StatefulWidget {
@@ -284,12 +286,18 @@ class _HomePageState extends State<HomePage> {
                   ),
 
                   // Ícone de Mensagem no final
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: Icon(
-                      Icons.email_outlined,
-                      color: textMain,
-                      size: 40,
+                  // Ícone de Mensagem no final da barra lateral
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => ChatsRecentesPage(isDark: isDark)));
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Icon(
+                        Icons.email_outlined,
+                        color: textMain,
+                        size: 40,
+                      ),
                     ),
                   ),
                 ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'ranking_semanal.dart';
 import 'registro_atividade.dart'; // Import para o botão de "+" funcionar
+import 'chat_page.dart';
 
 class GrupoPage extends StatelessWidget {
   final bool isDark;
@@ -101,7 +102,15 @@ class GrupoPage extends StatelessWidget {
                         child: const Icon(Icons.add_circle_outline, color: Colors.white, size: 45),
                       ),
                       const SizedBox(width: 15),
-                      const Icon(Icons.email_outlined, color: Colors.white, size: 45),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => ChatPage(isDark: isDark, grupoNome: grupoNome)),
+                          );
+                        },
+                        child: const Icon(Icons.email_outlined, color: Colors.white, size: 45),
+                      ),
                       const SizedBox(width: 15),
                       // Botão do Ranking
                       GestureDetector(
