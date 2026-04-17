@@ -32,7 +32,7 @@ class GrupoPage extends StatelessWidget {
                       "P",
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
                     ),
-                  ),
+                  ), 
                   const SizedBox(width: 15),
                   Expanded(
                     child: Container(
