@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../controllers/theme_controller.dart';
 import 'criacao_grupo.dart';
 import 'grupo_page.dart'; // Vamos criar esse arquivo no próximo passo!
+import 'perfil.dart';
 
 class HomePage extends StatefulWidget {
   final bool isDark;
@@ -56,48 +57,38 @@ class _HomePageState extends State<HomePage> {
                         padding: const EdgeInsets.all(20.0),
                         child: Row(
                           children: [
-                            const CircleAvatar(
-                              backgroundColor: Colors.green,
-                              radius: 20,
-                              child: Text(
-                                "P",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 15),
-                            Expanded(
-                              child: Container(
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: TextField(
-                                  style: TextStyle(color: textMain),
-                                  decoration: InputDecoration(
-                                    hintText: "Texto da pesquisa",
-                                    hintStyle: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 14,
-                                    ),
-                                    border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 15,
-                                      vertical: 10,
-                                    ),
-                                    suffixIcon: Icon(
-                                      Icons.search,
-                                      color: textMain,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+    const SizedBox(height: 50),
+    
+    // --- ÍCONE DE PERFIL COM NAVEGAÇÃO ---
+    GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const PerfilPage()),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white24, width: 2),
+        ),
+        child: CircleAvatar(
+          radius: 25,
+          backgroundColor: isDark ? Colors.white10 : Colors.black12,
+          child: Icon(
+            Icons.person, 
+            color: textMain, // Usa a cor definida no seu getter
+            size: 30,
+          ),
+        ),
+      ),
+    ),
+
+    const SizedBox(height: 20),
+    const Divider(color: Colors.white24, indent: 15, endIndent: 15),
+    
+    // ... restante da sua lista de grupos (ListView.builder)
+  ],
                         ),
                       ),
 
@@ -229,9 +220,19 @@ class _HomePageState extends State<HomePage> {
                   // Botão de Mais
                   GestureDetector(
                     onTap: () {
-                   Navigator.push(context, MaterialPageRoute(builder: (context) => CriacaoGrupoPage(isDark: isDark)));
-                  },
-                  child: Icon(Icons.add_circle_outline, color: textMain, size: 45),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              CriacaoGrupoPage(isDark: isDark),
+                        ),
+                      );
+                    },
+                    child: Icon(
+                      Icons.add_circle_outline,
+                      color: textMain,
+                      size: 45,
+                    ),
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 10),
