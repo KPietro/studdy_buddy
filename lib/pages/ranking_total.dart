@@ -97,7 +97,7 @@ class _RankingTotalState extends State<RankingTotal> {
             radius: 20,
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () {},
+              onPressed: () => Navigator.pop(context),
             ),
           ),
           Expanded(
