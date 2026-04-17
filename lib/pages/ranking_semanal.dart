@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'ranking_total.dart'; // Importe o outro arquivo aqui
+import 'package:cloud_firestore/cloud_firestore.dart'; // Importação do Firebase
+import 'ranking_total.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 
 class RankingSemanal extends StatefulWidget {
@@ -10,7 +11,7 @@ class RankingSemanal extends StatefulWidget {
 }
 
 class _RankingSemanalState extends State<RankingSemanal> {
-  bool isTemaEscuro = true; // Controle do tema nesta tela
+  bool isTemaEscuro = true;
 
   // Paleta de Cores
   final Color bgEscuro = const Color(0xFF2B0505);
@@ -21,18 +22,6 @@ class _RankingSemanalState extends State<RankingSemanal> {
   final Color verdeEscuro = const Color(0xFF00AA00);
   final Color verdeNeon = const Color.fromARGB(255, 55, 255, 20);
 
-  // Dados do Semanal
-  final List<Map<String, dynamic>> jogadores = List.generate(
-    15,
-    (index) => {
-      "posicao": index + 1,
-      "nome": index == 1
-          ? "Pietro Lagos"
-          : (index == 2 ? "Tim" : "Brayan Henrique"),
-      "pontos": 30000 - (index * 1000),
-    },
-  );
-
   @override
   Widget build(BuildContext context) {
     final bool isDark = isTemaEscuro;
@@ -40,14 +29,55 @@ class _RankingSemanalState extends State<RankingSemanal> {
     return Scaffold(
       backgroundColor: isDark ? bgEscuro : bgClaro,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(isDark),
-            const SizedBox(height: 20),
-            _buildPodio(isDark),
-            const SizedBox(height: 30),
-            Expanded(child: _buildLista(isDark)),
-          ],
+        // STREAM BUILDER: Fica ouvindo o Firestore em tempo real
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('grupos')
+              .doc('G1') // Puxando do Grupo 1
+              .collection('membros')
+              .orderBy(
+                'pontosSemanais',
+                descending: true,
+              ) // O Firebase já traz do maior pro menor!
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Center(
+                child: Text(
+                  'Nenhum jogador encontrado.',
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                ),
+              );
+            }
+
+            // Convertendo os dados do Firebase para a lista que o seu layout usa
+            final List<Map<String, dynamic>> jogadores = [];
+            final docs = snapshot.data!.docs;
+
+            for (int i = 0; i < docs.length; i++) {
+              jogadores.add({
+                "posicao": i + 1,
+                "nome": docs[i]['nome'] ?? "Sem Nome",
+                "pontos": docs[i]['pontosSemanais'] ?? 0,
+                "atividades": docs[i]['atividadesMaioresSemanais'] ?? 0,
+                "fotoPerfil": docs[i]['fotoPerfil'], // Pode ser null
+              });
+            }
+
+            return Column(
+              children: [
+                _buildHeader(isDark),
+                const SizedBox(height: 20),
+                _buildPodio(isDark, jogadores),
+                const SizedBox(height: 30),
+                Expanded(child: _buildLista(isDark, jogadores)),
+              ],
+            );
+          },
         ),
       ),
       bottomNavigationBar: _buildBottomBar(isDark, context),
@@ -104,61 +134,58 @@ class _RankingSemanalState extends State<RankingSemanal> {
     );
   }
 
-  Widget _buildPodio(bool isDark) {
-    // Envolvi o pódio em um SizedBox com altura fixa (250) para garantir que
-    // a animação cresça de baixo para cima sem empurrar a lista para baixo.
+  Widget _buildPodio(bool isDark, List<Map<String, dynamic>> jogadores) {
     return SizedBox(
       height: 250,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          _buildPilar(2, 130, isDark),
+          if (jogadores.length > 1) _buildPilar(jogadores[1], 130, isDark),
           const SizedBox(width: 15),
-          _buildPilar(1, 180, isDark),
+          if (jogadores.isNotEmpty) _buildPilar(jogadores[0], 180, isDark),
           const SizedBox(width: 15),
-          _buildPilar(3, 110, isDark),
+          if (jogadores.length > 2) _buildPilar(jogadores[2], 110, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildPilar(int posicao, double alturaAlvo, bool isDark) {
+  Widget _buildPilar(Map<String, dynamic> j, double alturaAlvo, bool isDark) {
     const double larguraFrente = 50.0;
-    const double depth = 15.0; // Profundidade do 3D
-    const double angle = 0.5; // Inclinação
-    final double dy = depth * angle; // O espaço que a tampa ocupa para cima
+    const double depth = 15.0;
+    const double angle = 0.5;
+    final double dy = depth * angle;
 
-    // Cores EXATAS e fixas, sem mudar com o tema claro/escuro
     final Color colorFront = Colors.greenAccent;
     final Color colorSide = Colors.green[800]!;
     final Color colorTop = Colors.green[900]!;
 
-    // O TweenAnimationBuilder é a mágica que faz o gráfico sair do zero e subir!
+    bool temFoto =
+        j["fotoPerfil"] != null && j["fotoPerfil"].toString().isNotEmpty;
+
     return TweenAnimationBuilder<double>(
-      tween: Tween<double>(
-        begin: 0.0,
-        end: alturaAlvo,
-      ), // Vai do 0 até a altura alvo
-      duration: const Duration(milliseconds: 1500), // 1.5 segundos de animação
-      curve:
-          Curves.easeOutCubic, // Curva suave (começa rápido e freia no final)
+      tween: Tween<double>(begin: 0.0, end: alturaAlvo),
+      duration: const Duration(milliseconds: 1500),
+      curve: Curves.easeOutCubic,
       builder: (context, alturaAnimada, child) {
         return Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
+            // AVATAR COM FOTO URL OU ÍCONE
             CircleAvatar(
               radius: 22,
               backgroundColor: isDark ? Colors.grey[800] : Colors.grey[400],
-              child: const Icon(Icons.person, color: Colors.white),
+              backgroundImage: temFoto ? NetworkImage(j["fotoPerfil"]) : null,
+              child: !temFoto
+                  ? const Icon(Icons.person, color: Colors.white)
+                  : null,
             ),
             const SizedBox(height: 10),
-
-            // O CustomPaint agora usa a "alturaAnimada" que está crescendo a cada frame
             CustomPaint(
               size: Size(larguraFrente + depth, alturaAnimada + dy),
               painter: PillarPainter(
-                altura: alturaAnimada, // Passa o valor animado para o pintor
+                altura: alturaAnimada,
                 colorFront: colorFront,
                 colorSide: colorSide,
                 colorTop: colorTop,
@@ -170,18 +197,21 @@ class _RankingSemanalState extends State<RankingSemanal> {
     );
   }
 
-  Widget _buildLista(bool isDark) {
+  Widget _buildLista(bool isDark, List<Map<String, dynamic>> jogadores) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 30),
       itemCount: jogadores.length,
       itemBuilder: (context, index) {
         final j = jogadores[index];
+        bool temFoto =
+            j["fotoPerfil"] != null && j["fotoPerfil"].toString().isNotEmpty;
+
         return Container(
           margin: const EdgeInsets.only(bottom: 7),
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: isDark ? Colors.black : Colors.white,
-            border: Border.all(),
+            border: Border.all(color: Colors.white24),
             borderRadius: BorderRadius.circular(3),
           ),
           child: Row(
@@ -203,10 +233,14 @@ class _RankingSemanalState extends State<RankingSemanal> {
                         ),
                       ),
               ),
-              const CircleAvatar(
+              // AVATAR DA LISTA
+              CircleAvatar(
                 radius: 12,
                 backgroundColor: Colors.grey,
-                child: Icon(Icons.person, size: 15),
+                backgroundImage: temFoto ? NetworkImage(j["fotoPerfil"]) : null,
+                child: !temFoto
+                    ? const Icon(Icons.person, size: 15, color: Colors.white)
+                    : null,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -217,7 +251,7 @@ class _RankingSemanalState extends State<RankingSemanal> {
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 23,
+                  horizontal: 10,
                   vertical: 3,
                 ),
                 decoration: BoxDecoration(
@@ -227,7 +261,7 @@ class _RankingSemanalState extends State<RankingSemanal> {
                 child: Text(
                   'PTS   ${j["pontos"]}',
                   style: const TextStyle(
-                    color: Color.fromARGB(249, 255, 255, 255),
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
@@ -241,9 +275,9 @@ class _RankingSemanalState extends State<RankingSemanal> {
                   borderRadius: BorderRadius.circular(3),
                 ),
                 child: Text(
-                  'QTT:10',
+                  'QTT:${j["atividades"]}', // Dinâmico!
                   style: const TextStyle(
-                    color: Color.fromRGBO(2555, 255, 255, 1),
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
@@ -256,7 +290,6 @@ class _RankingSemanalState extends State<RankingSemanal> {
     );
   }
 
-  // --- BARRA INFERIOR CURVADA ---
   Widget _buildBottomBar(bool isDark, BuildContext context) {
     return CurvedNavigationBar(
       backgroundColor: isDark ? bgEscuro : bgClaro,
@@ -287,6 +320,7 @@ class _RankingSemanalState extends State<RankingSemanal> {
   }
 }
 
+// O SEU PillarPainter EXATAMENTE COMO VOCÊ FEZ
 class PillarPainter extends CustomPainter {
   final double altura;
   final Color colorFront;
@@ -302,11 +336,10 @@ class PillarPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Se a altura for muito pequena, não desenha para evitar bugs visuais
     if (altura <= 0.1) return;
 
-    const double W = 50.0; // Largura da frente
-    const double D = 15.0; // Profundidade
+    const double W = 50.0;
+    const double D = 15.0;
     const double angle = 0.5;
     final double Dy = D * angle;
 
@@ -333,14 +366,12 @@ class PillarPainter extends CustomPainter {
       ..lineTo(W, Dy)
       ..lineTo(0, Dy)
       ..close();
-
     final pathSide = Path()
       ..moveTo(W, base)
       ..lineTo(W + D, base - Dy)
       ..lineTo(W + D, 0)
       ..lineTo(W, Dy)
       ..close();
-
     final pathTop = Path()
       ..moveTo(0, Dy)
       ..lineTo(W, Dy)
@@ -359,7 +390,6 @@ class PillarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant PillarPainter oldDelegate) {
-    // Só redesenha se a altura mudar (Performance 100%)
     return oldDelegate.altura != altura;
   }
 }
