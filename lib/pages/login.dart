@@ -133,12 +133,6 @@ class _LoginPageState extends State<LoginPage> {
                               : const Color(0xFF1ABC9C),
                           width: 3,
                         ),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.black
-                              : const Color(0xFF1ABC9C),
-                          width: 4,
-                        ),
                         borderRadius: BorderRadius.circular(15),
                       ),
                       child: ClipRRect(
@@ -146,25 +140,6 @@ class _LoginPageState extends State<LoginPage> {
                         child: Image.asset(
                           isDark ? 'assets/logo.png' : 'assets/logobranca.png',
                           width: 100,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    // FORMULÁRIO ORIGINAL
-                    Container(
-                      width: 320,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color.fromARGB(255, 82, 15, 15)
-                            : const Color(0xFF9FB8A3),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(15),
-                        child: Image.asset(
-                          isDark ? 'assets/logo.png' : 'assets/logobranca.png',
-                          width: 90,
                         ),
                       ),
                     ),
