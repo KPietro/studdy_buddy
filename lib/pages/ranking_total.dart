@@ -29,49 +29,53 @@ class _RankingTotalState extends State<RankingTotal> {
       body: SafeArea(
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection('usuarios') // CONEXÃO ATUALIZADA
-              .orderBy('pontos_total', descending: true) // CONEXÃO ATUALIZADA
+              .collection('grupos')
+              .doc('G1')
+              .collection('membros')
+              .orderBy('pontosTotais', descending: true) // ORDENA PELO TOTAL
               .snapshots(),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return Center(
-                child: Text(
-                  'Nenhum jogador encontrado.',
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                ),
-              );
-            }
-
             final List<Map<String, dynamic>> jogadores = [];
-            final docs = snapshot.data!.docs;
 
-            for (int i = 0; i < docs.length; i++) {
-              final data =
-                  docs[i].data() as Map<String, dynamic>; // Leitura segura
-              jogadores.add({
-                "posicao": i + 1,
-                "nome":
-                    data['nome_exibicao'] ??
-                    data['nome'] ??
-                    "Sem Nome", // CONEXÃO ATUALIZADA
-                "pontos": data['pontos_total'] ?? 0, // CONEXÃO ATUALIZADA
-                "atividades":
-                    data['tarefas_concluidas'] ?? 0, // CONEXÃO ATUALIZADA
-                "fotoPerfil": data['foto_url'], // CONEXÃO ATUALIZADA
-              });
+            if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+              final docs = snapshot.data!.docs;
+              for (int i = 0; i < docs.length; i++) {
+                jogadores.add({
+                  "posicao": i + 1,
+                  "nome": docs[i]['nome'] ?? "Sem Nome",
+                  "pontos": docs[i]['pontosTotais'] ?? 0, // PUXA O TOTAL
+                  "atividades":
+                      docs[i]['atividadesMaioresTotais'] ?? 0, // PUXA O TOTAL
+                  "fotoPerfil": docs[i]['fotoPerfil'],
+                });
+              }
             }
 
             return Column(
               children: [
-                _buildHeader(isDark),
+                _buildHeader(isDark), // Cabeçalho fixo no topo
                 const SizedBox(height: 20),
-                _buildPodio(isDark, jogadores),
-                const SizedBox(height: 30),
-                Expanded(child: _buildLista(isDark, jogadores)),
+
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  const Expanded(
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (jogadores.isEmpty)
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        'Nenhum jogador encontrado no G1.',
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                      ),
+                    ),
+                  )
+                else ...[
+                  _buildPodio(isDark, jogadores),
+                  const SizedBox(height: 30),
+                  Expanded(child: _buildLista(isDark, jogadores)),
+                ],
               ],
             );
           },
