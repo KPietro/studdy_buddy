@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CadastroPage extends StatefulWidget {
   const CadastroPage({super.key});
@@ -9,8 +10,9 @@ class CadastroPage extends StatefulWidget {
 }
 
 class _CadastroPageState extends State<CadastroPage> {
-  final exibicaonomeController = TextEditingController();
+  // Controladores para capturar o texto dos campos
   final nomeController = TextEditingController();
+  final exibicaoController = TextEditingController(); // Novo campo
   final emailController = TextEditingController();
   final senhaController = TextEditingController();
   final confirmController = TextEditingController();
@@ -18,43 +20,69 @@ class _CadastroPageState extends State<CadastroPage> {
   bool loading = false;
 
   Future<void> cadastrar() async {
+    // Validações Básicas
     if (senhaController.text != confirmController.text) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Senhas não conferem")));
+      _mostrarErro("As senhas não coincidem!");
+      return;
+    }
+
+    if (nomeController.text.isEmpty ||
+        exibicaoController.text.isEmpty ||
+        emailController.text.isEmpty) {
+      _mostrarErro("Por favor, preencha todos os campos obrigatórios!");
       return;
     }
 
     setState(() => loading = true);
 
     try {
-      // O Firebase cria o usuário e já salva no banco de dados de Auth dele!
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController.text.trim(), // .trim() tira espaços sem querer
-        password: senhaController.text.trim(),
+      // 1. Criar o utilizador no Firebase Authentication
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: emailController.text.trim(),
+            password: senhaController.text.trim(),
+          );
+
+      String uid = userCredential.user!.uid;
+
+      // 2. Atualizar o DisplayName nativo do Firebase Auth
+      await userCredential.user!.updateDisplayName(
+        exibicaoController.text.trim(),
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Conta criada com sucesso!")),
-      );
+      // 3. Criar o documento no Firestore (Coleção: usuarios | ID: uid)
+      await FirebaseFirestore.instance.collection('usuarios').doc(uid).set({
+        'nome': nomeController.text.trim(),
+        'nome_exibicao': exibicaoController.text.trim(),
+        'email': emailController.text.trim(),
+        'bio': 'Estudante do Studdy-Buddy 🚀',
+        'foto_url': '',
+        'pontos_total': 0,
+        'pontos_semanal': 0,
+        'medalhas': [],
+        'grupos_vinculados': [],
+      });
 
-      // Volta para a tela de login
-      if (mounted) Navigator.pop(context);
-    } on FirebaseAuthException catch (e) {
-      // Se der erro (ex: email já existe, senha fraca), ele avisa o usuário
-      String mensagemErro = "Erro ao cadastrar";
-      if (e.code == 'weak-password') {
-        mensagemErro = 'A senha é muito fraca (mínimo 6 caracteres).';
-      } else if (e.code == 'email-already-in-use') {
-        mensagemErro = 'Esse e-mail já está cadastrado.';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Conta criada com sucesso!")),
+        );
+        Navigator.pop(context); // Volta para a tela de Login
       }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(mensagemErro)));
+    } on FirebaseAuthException catch (e) {
+      String msg = "Ocorreu um erro no cadastro.";
+      if (e.code == 'weak-password') msg = "A senha é demasiado fraca.";
+      if (e.code == 'email-already-in-use') msg = "Este e-mail já está em uso.";
+      _mostrarErro(msg);
     } finally {
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
+  }
+
+  void _mostrarErro(String mensagem) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(mensagem)));
   }
 
   @override
@@ -62,62 +90,50 @@ class _CadastroPageState extends State<CadastroPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
-        child: Container(
-          width: 380,
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(25),
-          decoration: BoxDecoration(
-            color: const Color(0xFF121212),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.red.withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.person_add, size: 80, color: Colors.red),
-              const SizedBox(height: 10),
-              const Text(
-                "Cadastro",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+          child: Container(
+            width: 380,
+            decoration: BoxDecoration(
+              color: const Color(0xFF121212),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.all(25),
+            child: Column(
+              children: [
+                const Icon(Icons.person_add, size: 60, color: Colors.red),
+                const SizedBox(height: 20),
+                _field("Nome Completo", nomeController),
+                _field(
+                  "Nome de Exibição (Como aparecerás no Ranking)",
+                  exibicaoController,
                 ),
-              ),
-              const SizedBox(height: 20),
-              _field("Nome de exibição", exibicaonomeController),
-              _field("Nome", nomeController),
-              _field("E-mail", emailController),
-              _field("Senha", senhaController, isPass: true),
-              _field("Confirmar senha", confirmController, isPass: true),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: loading ? null : cadastrar,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text("Cadastrar"),
+                _field("E-mail", emailController),
+                _field("Senha", senhaController, isPass: true),
+                _field("Confirmar Senha", confirmController, isPass: true),
+                const SizedBox(height: 25),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: loading ? null : cadastrar,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    child: loading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text("Finalizar Registo"),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text(
-                  "Voltar",
-                  style: TextStyle(color: Colors.red),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "Voltar ao Login",
+                    style: TextStyle(color: Colors.white70),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -137,11 +153,11 @@ class _CadastroPageState extends State<CadastroPage> {
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.white70),
+          labelStyle: const TextStyle(color: Colors.white60, fontSize: 13),
           filled: true,
           fillColor: const Color(0xFF1E1E1E),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide.none,
           ),
         ),

@@ -26,7 +26,6 @@ void main() async {
     ),
   );
 }
-
 class StuddyBuddyApp extends StatelessWidget {
   const StuddyBuddyApp({super.key});
 
