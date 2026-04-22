@@ -12,12 +12,39 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  bool isLoadingTheme = true;
+  bool isLoggingIn = false; // Para o loading do botão
+
   final emailController = TextEditingController();
   final senhaController = TextEditingController();
-  bool isLoggingIn = false;
 
+  @override
+  void initState() {
+    super.initState();
+    loadTheme();
+  }
+
+  void loadTheme() async {
+    await ThemeController.loadTheme();
+    setState(() {
+      isLoadingTheme = false;
+    });
+  }
+
+  void toggleTheme() async {
+    ThemeController.isDark = !ThemeController.isDark;
+    await ThemeController.saveTheme(ThemeController.isDark);
+    setState(() {});
+  }
+
+  // Lógica de Login integrada
   Future<void> login() async {
-    if (emailController.text.isEmpty || senhaController.text.isEmpty) return;
+    if (emailController.text.isEmpty || senhaController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Preencha todos os campos!")),
+      );
+      return;
+    }
 
     setState(() => isLoggingIn = true);
 
@@ -36,8 +63,12 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      String erro = "E-mail ou senha incorretos.";
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(erro)));
+      String erro = "Erro ao entrar.";
+      if (e.code == 'invalid-credential') erro = "E-mail ou senha incorretos.";
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(erro)));
     } finally {
       if (mounted) setState(() => isLoggingIn = false);
     }
@@ -45,75 +76,189 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoadingTheme)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
     bool isDark = ThemeController.isDark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF160303) : Colors.white,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(30),
-          child: Column(
-            children: [
-              Image.asset(
-                isDark ? 'assets/logo.png' : 'assets/logobranca.png',
-                width: 120,
-              ),
-              const SizedBox(height: 40),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF2D0505)
-                      : const Color(0xFFF0F0F0),
-                  borderRadius: BorderRadius.circular(20),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 500),
+        child: Stack(
+          key: ValueKey(isDark),
+          children: [
+            // SEU GRADIENTE ORIGINAL
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 500),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [
+                          const Color.fromARGB(255, 233, 86, 86),
+                          const Color.fromARGB(255, 83, 21, 16),
+                        ]
+                      : [const Color(0xFFA8D7D6), const Color(0xFF8ED39A)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
+              ),
+            ),
+            // SEUS BALÕES ORIGINAIS
+            Positioned.fill(
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 500),
+                opacity: isDark ? 1 : 0.15,
+                child: Image.asset(
+                  isDark ? 'assets/baloesvermelho.png' : 'assets/baloes.png',
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            // SEU BOTÃO DE TEMA ORIGINAL
+            Positioned(
+              top: 40,
+              right: 20,
+              child: IconButton(
+                onPressed: toggleTheme,
+                icon: Icon(
+                  isDark ? Icons.light_mode : Icons.dark_mode,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            Center(
+              child: SingleChildScrollView(
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextField(
-                      controller: emailController,
-                      decoration: const InputDecoration(labelText: "E-mail"),
-                    ),
-                    const SizedBox(height: 15),
-                    TextField(
-                      controller: senhaController,
-                      obscureText: true,
-                      decoration: const InputDecoration(labelText: "Senha"),
-                    ),
-                    const SizedBox(height: 25),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: isLoggingIn ? null : login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
+                    // LOGO
+                    Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.black
+                              : const Color(0xFF1ABC9C),
+                          width: 4,
                         ),
-                        child: isLoggingIn
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : const Text("Entrar"),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.asset(
+                          isDark ? 'assets/logo.png' : 'assets/logobranca.png',
+                          width: 100,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // FORMULÁRIO ORIGINAL
+                    Container(
+                      width: 320,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color.fromARGB(255, 82, 15, 15)
+                            : const Color(0xFF9FB8A3),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "E-mail:",
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextField(
+                            controller: emailController,
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black,
+                            ),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: isDark
+                                  ? const Color.fromARGB(255, 60, 10, 10)
+                                  : Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                          Text(
+                            "Senha:",
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextField(
+                            controller: senhaController,
+                            obscureText: true,
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black,
+                            ),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: isDark
+                                  ? const Color.fromARGB(255, 60, 10, 10)
+                                  : Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: isLoggingIn ? null : login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isDark
+                                    ? const Color.fromARGB(255, 218, 43, 43)
+                                    : const Color(0xFF4CAF50),
+                              ),
+                              child: isLoggingIn
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
+                                  : const Text(
+                                      "Entrar",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                            ),
+                          ),
+                          Center(
+                            child: TextButton(
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CadastroPage(),
+                                ),
+                              ),
+                              child: Text(
+                                "Criar conta",
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CadastroPage(),
-                    ),
-                  );
-                },
-                child: const Text(
-                  "Criar uma conta nova",
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
