@@ -19,7 +19,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 2, // Número de "Sub Abas"
       child: Scaffold(
         backgroundColor: bgMain,
         appBar: AppBar(
@@ -46,6 +46,9 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     );
   }
 
+  // ==========================================
+  // SUB ABA 1: ATIVIDADE COMUM
+  // ==========================================
   Widget _buildAbaComum() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -56,6 +59,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
           _buildTextField("Ex: Lendo capítulo 4 de História"),
           const SizedBox(height: 20),
 
+          // Toggle Timer vs Manual
           Container(
             decoration: BoxDecoration(color: pillBg, borderRadius: BorderRadius.circular(15)),
             child: SwitchListTile(
@@ -68,6 +72,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
           ),
           const SizedBox(height: 20),
 
+          // Lógica condicional: Mostra o Timer OU o campo de digitar o tempo
           if (usarTimer)
             Center(
               child: Column(
@@ -106,6 +111,9 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     );
   }
 
+  // ==========================================
+  // SUB ABA 2: TAREFA MAIOR (Ex: Simulado)
+  // ==========================================
   Widget _buildAbaMaior() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -145,6 +153,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     );
   }
 
+  // --- Widgets Auxiliares ---
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, top: 15),

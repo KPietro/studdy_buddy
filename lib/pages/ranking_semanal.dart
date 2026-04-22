@@ -32,13 +32,8 @@ class _RankingSemanalState extends State<RankingSemanal> {
         // STREAM BUILDER: Fica ouvindo o Firestore em tempo real
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection('grupos')
-              .doc('G1') // Puxando do Grupo 1
-              .collection('membros')
-              .orderBy(
-                'pontosSemanais',
-                descending: true,
-              ) // O Firebase já traz do maior pro menor!
+              .collection('usuarios') // CONEXÃO ATUALIZADA
+              .orderBy('pontos_semanal', descending: true) // CONEXÃO ATUALIZADA
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -59,12 +54,18 @@ class _RankingSemanalState extends State<RankingSemanal> {
             final docs = snapshot.data!.docs;
 
             for (int i = 0; i < docs.length; i++) {
+              final data =
+                  docs[i].data() as Map<String, dynamic>; // Leitura segura
               jogadores.add({
                 "posicao": i + 1,
-                "nome": docs[i]['nome'] ?? "Sem Nome",
-                "pontos": docs[i]['pontosSemanais'] ?? 0,
-                "atividades": docs[i]['atividadesMaioresSemanais'] ?? 0,
-                "fotoPerfil": docs[i]['fotoPerfil'], // Pode ser null
+                "nome":
+                    data['nome_exibicao'] ??
+                    data['nome'] ??
+                    "Sem Nome", // CONEXÃO ATUALIZADA
+                "pontos": data['pontos_semanal'] ?? 0, // CONEXÃO ATUALIZADA
+                "atividades":
+                    data['tarefas_concluidas'] ?? 0, // CONEXÃO ATUALIZADA
+                "fotoPerfil": data['foto_url'], // CONEXÃO ATUALIZADA
               });
             }
 
