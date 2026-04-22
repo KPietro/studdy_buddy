@@ -9,6 +9,8 @@ class CadastroPage extends StatefulWidget {
 }
 
 class _CadastroPageState extends State<CadastroPage> {
+  final exibicaonomeController = TextEditingController();
+  final nomeController = TextEditingController();
   final emailController = TextEditingController();
   final senhaController = TextEditingController();
   final confirmController = TextEditingController();
@@ -88,6 +90,8 @@ class _CadastroPageState extends State<CadastroPage> {
                 ),
               ),
               const SizedBox(height: 20),
+              _field("Nome de exibição", exibicaonomeController),
+              _field("Nome", nomeController),
               _field("E-mail", emailController),
               _field("Senha", senhaController, isPass: true),
               _field("Confirmar senha", confirmController, isPass: true),
