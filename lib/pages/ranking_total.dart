@@ -29,10 +29,8 @@ class _RankingTotalState extends State<RankingTotal> {
       body: SafeArea(
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection('grupos')
-              .doc('G1')
-              .collection('membros')
-              .orderBy('pontosTotais', descending: true) // ORDENA PELO TOTAL
+              .collection('usuarios') // CONEXÃO ATUALIZADA
+              .orderBy('pontos_total', descending: true) // CONEXÃO ATUALIZADA
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -52,13 +50,18 @@ class _RankingTotalState extends State<RankingTotal> {
             final docs = snapshot.data!.docs;
 
             for (int i = 0; i < docs.length; i++) {
+              final data =
+                  docs[i].data() as Map<String, dynamic>; // Leitura segura
               jogadores.add({
                 "posicao": i + 1,
-                "nome": docs[i]['nome'] ?? "Sem Nome",
-                "pontos": docs[i]['pontosTotais'] ?? 0, // PUXA O TOTAL
+                "nome":
+                    data['nome_exibicao'] ??
+                    data['nome'] ??
+                    "Sem Nome", // CONEXÃO ATUALIZADA
+                "pontos": data['pontos_total'] ?? 0, // CONEXÃO ATUALIZADA
                 "atividades":
-                    docs[i]['atividadesMaioresTotais'] ?? 0, // PUXA O TOTAL
-                "fotoPerfil": docs[i]['fotoPerfil'],
+                    data['tarefas_concluidas'] ?? 0, // CONEXÃO ATUALIZADA
+                "fotoPerfil": data['foto_url'], // CONEXÃO ATUALIZADA
               });
             }
 
@@ -150,7 +153,7 @@ class _RankingTotalState extends State<RankingTotal> {
     const double depth = 15.0;
     const double angle = 0.5;
     final double dy = depth * angle;
-    int alturaquero = altura.toInt(); // Sua lógica mantida
+    int alturaquero = altura.toInt();
 
     final colorFront = isDark ? Colors.greenAccent : Colors.greenAccent[400]!;
     final colorSide = isDark ? Colors.green[800]! : Colors.green[700]!;
@@ -161,7 +164,7 @@ class _RankingTotalState extends State<RankingTotal> {
 
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: altura),
-      duration: Duration(milliseconds: 10 * alturaquero), // Sua lógica mantida
+      duration: Duration(milliseconds: 10 * alturaquero),
       curve: Curves.easeOutCubic,
       builder: (context, alturaAnimada, child) {
         return Column(
