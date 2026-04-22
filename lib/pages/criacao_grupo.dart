@@ -66,7 +66,6 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
 
             const SizedBox(height: 40),
             
-            // Botão Criar
             SizedBox(
               width: double.infinity,
               height: 50,

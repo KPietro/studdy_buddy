@@ -10,9 +10,8 @@ class CadastroPage extends StatefulWidget {
 }
 
 class _CadastroPageState extends State<CadastroPage> {
-  // Controladores para capturar o texto dos campos
   final nomeController = TextEditingController();
-  final exibicaoController = TextEditingController(); // Novo campo
+  final exibicaoController = TextEditingController();
   final emailController = TextEditingController();
   final senhaController = TextEditingController();
   final confirmController = TextEditingController();
@@ -20,7 +19,6 @@ class _CadastroPageState extends State<CadastroPage> {
   bool loading = false;
 
   Future<void> cadastrar() async {
-    // Validações Básicas
     if (senhaController.text != confirmController.text) {
       _mostrarErro("As senhas não coincidem!");
       return;
@@ -36,7 +34,6 @@ class _CadastroPageState extends State<CadastroPage> {
     setState(() => loading = true);
 
     try {
-      // 1. Criar o utilizador no Firebase Authentication
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
             email: emailController.text.trim(),
@@ -45,12 +42,10 @@ class _CadastroPageState extends State<CadastroPage> {
 
       String uid = userCredential.user!.uid;
 
-      // 2. Atualizar o DisplayName nativo do Firebase Auth
       await userCredential.user!.updateDisplayName(
         exibicaoController.text.trim(),
       );
 
-      // 3. Criar o documento no Firestore (Coleção: usuarios | ID: uid)
       await FirebaseFirestore.instance.collection('usuarios').doc(uid).set({
         'nome': nomeController.text.trim(),
         'nome_exibicao': exibicaoController.text.trim(),
@@ -67,7 +62,7 @@ class _CadastroPageState extends State<CadastroPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Conta criada com sucesso!")),
         );
-        Navigator.pop(context); // Volta para a tela de Login
+        Navigator.pop(context);
       }
     } on FirebaseAuthException catch (e) {
       String msg = "Ocorreu um erro no cadastro.";
@@ -122,13 +117,13 @@ class _CadastroPageState extends State<CadastroPage> {
                     ),
                     child: loading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text("Finalizar Registo"),
+                        : const Text("Realizar cadastro"),
                   ),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text(
-                    "Voltar ao Login",
+                    "Fazer Login",
                     style: TextStyle(color: Colors.white70),
                   ),
                 ),

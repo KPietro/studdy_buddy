@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'ranking_semanal.dart';
-import 'registro_atividade.dart'; // Import para o botão de "+" funcionar
+import 'registro_atividade.dart';
 import 'chat_page.dart';
 
 class GrupoPage extends StatelessWidget {
@@ -20,7 +20,6 @@ class GrupoPage extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // 🔍 TOPO (Avatar + Search)
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Row(
@@ -56,7 +55,6 @@ class GrupoPage extends StatelessWidget {
               ),
             ),
 
-            // 📋 LISTA DE TAREFAS (Agora clicáveis!)
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -68,13 +66,11 @@ class GrupoPage extends StatelessWidget {
               ),
             ),
 
-            // 🔻 BARRA INFERIOR (Voltar, Registro, Email, Pódio)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Botão Voltar
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
@@ -88,10 +84,8 @@ class GrupoPage extends StatelessWidget {
                     ),
                   ),
 
-                  // Ícones da Direita
                   Row(
                     children: [
-                      // Botão de Adicionar Atividade
                       GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -112,7 +106,6 @@ class GrupoPage extends StatelessWidget {
                         child: const Icon(Icons.email_outlined, color: Colors.white, size: 45),
                       ),
                       const SizedBox(width: 15),
-                      // Botão do Ranking
                       GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -133,7 +126,6 @@ class GrupoPage extends StatelessWidget {
     );
   }
 
-  // Widget para criar as pílulas de tarefas clicáveis
   Widget _buildTarefaItem(BuildContext context, String titulo, String pontos, Color avatarColor, dynamic avatarContent, {bool hasProgress = false}) {
     return GestureDetector(
       onTap: () => _mostrarDetalhesTarefa(context, titulo, pontos),
@@ -190,7 +182,6 @@ class GrupoPage extends StatelessWidget {
     );
   }
 
-  // Modal que mostra os detalhes antes de questionar
   void _mostrarDetalhesTarefa(BuildContext context, String titulo, String pontos) {
     showModalBottomSheet(
       context: context,
@@ -232,7 +223,6 @@ class GrupoPage extends StatelessWidget {
     );
   }
 
-  // Modal para escrever o motivo do questionamento
   void _abrirModalQuestionamento(BuildContext context) {
     showModalBottomSheet(
       context: context,
