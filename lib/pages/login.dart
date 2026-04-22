@@ -13,7 +13,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool isLoadingTheme = true;
-  bool isLoggingIn = false; // Para o loading do botão
+  bool isLoggingIn = false;
 
   final emailController = TextEditingController();
   final senhaController = TextEditingController();
@@ -37,7 +37,6 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {});
   }
 
-  // Lógica de Login integrada
   Future<void> login() async {
     if (emailController.text.isEmpty || senhaController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -87,7 +86,6 @@ class _LoginPageState extends State<LoginPage> {
         child: Stack(
           key: ValueKey(isDark),
           children: [
-            // SEU GRADIENTE ORIGINAL
             AnimatedContainer(
               duration: const Duration(milliseconds: 500),
               decoration: BoxDecoration(
@@ -103,7 +101,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
             ),
-            // SEUS BALÕES ORIGINAIS
             Positioned.fill(
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 500),
@@ -114,7 +111,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
             ),
-            // SEU BOTÃO DE TEMA ORIGINAL
             Positioned(
               top: 40,
               right: 20,
@@ -131,7 +127,6 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // LOGO
                     Container(
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
@@ -152,7 +147,6 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    // FORMULÁRIO ORIGINAL
                     Container(
                       width: 320,
                       padding: const EdgeInsets.all(20),

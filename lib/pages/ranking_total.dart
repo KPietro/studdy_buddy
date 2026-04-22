@@ -32,7 +32,7 @@ class _RankingTotalState extends State<RankingTotal> {
               .collection('grupos')
               .doc('G1')
               .collection('membros')
-              .orderBy('pontosTotais', descending: true) // ORDENA PELO TOTAL
+              .orderBy('pontosTotais', descending: true)
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -55,9 +55,9 @@ class _RankingTotalState extends State<RankingTotal> {
               jogadores.add({
                 "posicao": i + 1,
                 "nome": docs[i]['nome'] ?? "Sem Nome",
-                "pontos": docs[i]['pontosTotais'] ?? 0, // PUXA O TOTAL
+                "pontos": docs[i]['pontosTotais'] ?? 0,
                 "atividades":
-                    docs[i]['atividadesMaioresTotais'] ?? 0, // PUXA O TOTAL
+                    docs[i]['atividadesMaioresTotais'] ?? 0,
                 "fotoPerfil": docs[i]['fotoPerfil'],
               });
             }
@@ -150,7 +150,7 @@ class _RankingTotalState extends State<RankingTotal> {
     const double depth = 15.0;
     const double angle = 0.5;
     final double dy = depth * angle;
-    int alturaquero = altura.toInt(); // Sua lógica mantida
+    int alturaquero = altura.toInt();
 
     final colorFront = isDark ? Colors.greenAccent : Colors.greenAccent[400]!;
     final colorSide = isDark ? Colors.green[800]! : Colors.green[700]!;
@@ -161,7 +161,7 @@ class _RankingTotalState extends State<RankingTotal> {
 
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: altura),
-      duration: Duration(milliseconds: 10 * alturaquero), // Sua lógica mantida
+      duration: Duration(milliseconds: 10 * alturaquero),
       curve: Curves.easeOutCubic,
       builder: (context, alturaAnimada, child) {
         return Column(

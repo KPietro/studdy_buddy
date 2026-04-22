@@ -58,7 +58,6 @@ class _HomePageState extends State<HomePage> {
                           children: [
     const SizedBox(height: 50),
     
-    // --- ÍCONE DE PERFIL COM NAVEGAÇÃO ---
     GestureDetector(
       onTap: () {
         Navigator.push(
@@ -76,7 +75,7 @@ class _HomePageState extends State<HomePage> {
           backgroundColor: isDark ? Colors.white10 : Colors.black12,
           child: Icon(
             Icons.person, 
-            color: textMain, // Usa a cor definida no seu getter
+            color: textMain, 
             size: 30,
           ),
         ),
@@ -86,24 +85,21 @@ class _HomePageState extends State<HomePage> {
     const SizedBox(height: 20),
     const Divider(color: Colors.white24, indent: 15, endIndent: 15),
     
-    // ... restante da sua lista de grupos (ListView.builder)
   ],
                         ),
                       ),
 
-                      // Título "Recentes"
                       Text(
                         "Recentes",
                         style: TextStyle(
                           color: textMain,
                           fontSize: 28,
                           fontFamily:
-                              'Comic Sans MS', // Substitua pela fonte exata do Figma depois
+                              'Comic Sans MS', 
                         ),
                       ),
                       const SizedBox(height: 20),
 
-                      // 📋 LISTA DE RECENTES
                       Expanded(
                         child: ListView.builder(
                           padding: const EdgeInsets.only(
@@ -111,14 +107,13 @@ class _HomePageState extends State<HomePage> {
                             right: 20,
                             bottom: 80,
                           ),
-                          itemCount: 10, // Quantidade mockada
+                          itemCount: 10,
                           itemBuilder: (context, index) {
                             return Container(
                               margin: const EdgeInsets.only(bottom: 12),
                               child: Stack(
                                 clipBehavior: Clip.none,
                                 children: [
-                                  // Pílula Cinza
                                   Container(
                                     width: double.infinity,
                                     padding: const EdgeInsets.only(
@@ -139,7 +134,6 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                     ),
                                   ),
-                                  // Avatar sobreposto (vazando para a esquerda)
                                   Positioned(
                                     left: -15,
                                     top: 2,
@@ -183,13 +177,12 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
 
-                  // ⚙️ ENGRENAGEM E TEMA (Canto Inferior Esquerdo)
                   Positioned(
                     bottom: 20,
                     left: 20,
                     child: GestureDetector(
                       onTap:
-                          toggleTheme, // Usando a engrenagem para trocar o tema por enquanto!
+                          toggleTheme,
                       child: Icon(
                         Icons.settings,
                         color: isDark ? Colors.red : Colors.greenAccent,
@@ -201,7 +194,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // 🔹 SIDEBAR (DIREITA)
             Container(
               width: 70,
               decoration: BoxDecoration(
@@ -216,7 +208,6 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  // Botão de Mais
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -239,7 +230,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Lista de Grupos
                   Expanded(
                     child: ListView.builder(
                       itemCount: 8,
@@ -283,8 +273,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
 
-                  // Ícone de Mensagem no final
-                  // Ícone de Mensagem no final da barra lateral
                   GestureDetector(
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => ChatsRecentesPage(isDark: isDark)));

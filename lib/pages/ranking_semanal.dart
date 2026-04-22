@@ -172,7 +172,6 @@ class _RankingSemanalState extends State<RankingSemanal> {
         return Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            // AVATAR COM FOTO URL OU ÍCONE
             CircleAvatar(
               radius: 22,
               backgroundColor: isDark ? Colors.grey[800] : Colors.grey[400],
@@ -233,7 +232,6 @@ class _RankingSemanalState extends State<RankingSemanal> {
                         ),
                       ),
               ),
-              // AVATAR DA LISTA
               CircleAvatar(
                 radius: 12,
                 backgroundColor: Colors.grey,
@@ -275,7 +273,7 @@ class _RankingSemanalState extends State<RankingSemanal> {
                   borderRadius: BorderRadius.circular(3),
                 ),
                 child: Text(
-                  'QTT:${j["atividades"]}', // Dinâmico!
+                  'QTT:${j["atividades"]}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -320,7 +318,6 @@ class _RankingSemanalState extends State<RankingSemanal> {
   }
 }
 
-// O SEU PillarPainter EXATAMENTE COMO VOCÊ FEZ
 class PillarPainter extends CustomPainter {
   final double altura;
   final Color colorFront;
