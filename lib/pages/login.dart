@@ -133,12 +133,6 @@ class _LoginPageState extends State<LoginPage> {
                               : const Color(0xFF1ABC9C),
                           width: 3,
                         ),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.black
-                              : const Color(0xFF1ABC9C),
-                          width: 4,
-                        ),
                         borderRadius: BorderRadius.circular(15),
                       ),
                       child: ClipRRect(

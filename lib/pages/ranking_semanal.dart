@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Importação do Firebase
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'ranking_total.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 
@@ -13,7 +13,6 @@ class RankingSemanal extends StatefulWidget {
 class _RankingSemanalState extends State<RankingSemanal> {
   bool isTemaEscuro = true;
 
-  // Paleta de Cores
   final Color bgEscuro = const Color(0xFF2B0505);
   final Color baseEscura = const Color(0xFF4A0000);
   final Color bgClaro = const Color(0xFFEAFaf1);
@@ -29,53 +28,53 @@ class _RankingSemanalState extends State<RankingSemanal> {
     return Scaffold(
       backgroundColor: isDark ? bgEscuro : bgClaro,
       body: SafeArea(
-        // STREAM BUILDER: Fica ouvindo o Firestore em tempo real
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection('usuarios') // CONEXÃO ATUALIZADA
-              .orderBy('pontos_semanal', descending: true) // CONEXÃO ATUALIZADA
+              .collection('grupos')
+              .doc('G1')
+              .collection('membros')
+              .orderBy('pontosSemanais', descending: true)
               .snapshots(),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return Center(
-                child: Text(
-                  'Nenhum jogador encontrado.',
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                ),
-              );
-            }
-
-            // Convertendo os dados do Firebase para a lista que o seu layout usa
             final List<Map<String, dynamic>> jogadores = [];
-            final docs = snapshot.data!.docs;
 
-            for (int i = 0; i < docs.length; i++) {
-              final data =
-                  docs[i].data() as Map<String, dynamic>; // Leitura segura
-              jogadores.add({
-                "posicao": i + 1,
-                "nome":
-                    data['nome_exibicao'] ??
-                    data['nome'] ??
-                    "Sem Nome", // CONEXÃO ATUALIZADA
-                "pontos": data['pontos_semanal'] ?? 0, // CONEXÃO ATUALIZADA
-                "atividades":
-                    data['tarefas_concluidas'] ?? 0, // CONEXÃO ATUALIZADA
-                "fotoPerfil": data['foto_url'], // CONEXÃO ATUALIZADA
-              });
+            if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+              final docs = snapshot.data!.docs;
+              for (int i = 0; i < docs.length; i++) {
+                jogadores.add({
+                  "posicao": i + 1,
+                  "nome": docs[i]['nome'] ?? "Sem Nome",
+                  "pontos": docs[i]['pontosSemanais'] ?? 0,
+                  "atividades": docs[i]['atividadesMaioresSemanais'] ?? 0,
+                  "fotoPerfil": docs[i]['fotoPerfil'],
+                });
+              }
             }
 
             return Column(
               children: [
-                _buildHeader(isDark),
+                _buildHeader(isDark), // Cabeçalho agora fixo
                 const SizedBox(height: 20),
-                _buildPodio(isDark, jogadores),
-                const SizedBox(height: 30),
-                Expanded(child: _buildLista(isDark, jogadores)),
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  const Expanded(
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (jogadores.isEmpty)
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        'Nenhum jogador encontrado no G1.',
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                      ),
+                    ),
+                  )
+                else ...[
+                  _buildPodio(isDark, jogadores),
+                  const SizedBox(height: 30),
+                  Expanded(child: _buildLista(isDark, jogadores)),
+                ],
               ],
             );
           },
@@ -113,7 +112,6 @@ class _RankingSemanalState extends State<RankingSemanal> {
               children: [
                 Text(
                   '  Ranking Semanal',
-                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
@@ -157,11 +155,6 @@ class _RankingSemanalState extends State<RankingSemanal> {
     const double depth = 15.0;
     const double angle = 0.5;
     final double dy = depth * angle;
-
-    final Color colorFront = Colors.greenAccent;
-    final Color colorSide = Colors.green[800]!;
-    final Color colorTop = Colors.green[900]!;
-
     bool temFoto =
         j["fotoPerfil"] != null && j["fotoPerfil"].toString().isNotEmpty;
 
@@ -186,9 +179,9 @@ class _RankingSemanalState extends State<RankingSemanal> {
               size: Size(larguraFrente + depth, alturaAnimada + dy),
               painter: PillarPainter(
                 altura: alturaAnimada,
-                colorFront: colorFront,
-                colorSide: colorSide,
-                colorTop: colorTop,
+                colorFront: Colors.greenAccent,
+                colorSide: Colors.green[800]!,
+                colorTop: Colors.green[900]!,
               ),
             ),
           ],
@@ -235,7 +228,6 @@ class _RankingSemanalState extends State<RankingSemanal> {
               ),
               CircleAvatar(
                 radius: 12,
-                backgroundColor: Colors.grey,
                 backgroundImage: temFoto ? NetworkImage(j["fotoPerfil"]) : null,
                 child: !temFoto
                     ? const Icon(Icons.person, size: 15, color: Colors.white)
@@ -295,24 +287,20 @@ class _RankingSemanalState extends State<RankingSemanal> {
       color: isDark ? baseEscura : baseClara,
       buttonBackgroundColor: isDark ? baseEscura : baseClara,
       height: 60,
-      animationDuration: const Duration(milliseconds: 300),
       index: 0,
-      items: const <Widget>[
+      items: const [
         Icon(Icons.emoji_events, color: Colors.deepOrange, size: 30),
         Icon(Icons.workspace_premium, color: Colors.yellow, size: 30),
       ],
       onTap: (index) {
         if (index == 1) {
-          Future.delayed(const Duration(milliseconds: 300), () {
-            Navigator.pushReplacement(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation1, animation2) =>
-                    const RankingTotal(),
-                transitionDuration: Duration.zero,
-              ),
-            );
-          });
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, a1, a2) => const RankingTotal(),
+              transitionDuration: Duration.zero,
+            ),
+          );
         }
       },
     );
@@ -335,27 +323,14 @@ class PillarPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (altura <= 0.1) return;
-
     const double W = 50.0;
     const double D = 15.0;
     const double angle = 0.5;
     final double Dy = D * angle;
-
-    final paintFront = Paint()
-      ..color = colorFront
-      ..style = PaintingStyle.fill;
-    final paintSide = Paint()
-      ..color = colorSide
-      ..style = PaintingStyle.fill;
-    final paintTop = Paint()
-      ..color = colorTop
-      ..style = PaintingStyle.fill;
-
     final paintBorder = Paint()
       ..color = Colors.black
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
-
     final base = altura + Dy;
 
     final pathFront = Path()
@@ -377,17 +352,15 @@ class PillarPainter extends CustomPainter {
       ..lineTo(D, 0)
       ..close();
 
-    canvas.drawPath(pathFront, paintFront);
-    canvas.drawPath(pathSide, paintSide);
-    canvas.drawPath(pathTop, paintTop);
-
+    canvas.drawPath(pathFront, Paint()..color = colorFront);
+    canvas.drawPath(pathSide, Paint()..color = colorSide);
+    canvas.drawPath(pathTop, Paint()..color = colorTop);
     canvas.drawPath(pathFront, paintBorder);
     canvas.drawPath(pathSide, paintBorder);
     canvas.drawPath(pathTop, paintBorder);
   }
 
   @override
-  bool shouldRepaint(covariant PillarPainter oldDelegate) {
-    return oldDelegate.altura != altura;
-  }
+  bool shouldRepaint(covariant PillarPainter oldDelegate) =>
+      oldDelegate.altura != altura;
 }
