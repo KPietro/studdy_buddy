@@ -3,7 +3,7 @@ import '../controllers/theme_controller.dart';
 import 'criacao_grupo.dart';
 import 'chats_recentes.dart';
 import 'registro_atividade.dart';
-import 'grupo_page.dart'; // Vamos criar esse arquivo no próximo passo!
+import 'grupo_page.dart';
 import 'perfil.dart';
 
 class HomePage extends StatefulWidget {
@@ -32,7 +32,6 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // Cores baseadas no seu Figma
   Color get bgMain =>
       isDark ? const Color(0xFF160303) : const Color(0xFFEAFaf1);
   Color get bgSidebar =>
@@ -48,13 +47,11 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: Row(
           children: [
-            // 🔹 CONTEÚDO PRINCIPAL (ESQUERDA)
             Expanded(
               child: Stack(
                 children: [
                   Column(
                     children: [
-                      // 🔍 TOPO (Avatar + Search)
                       Padding(
                         padding: const EdgeInsets.all(20.0),
                         child: Row(

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'chat_page.dart'; // Import para abrir o chat quando clicar
+import 'chat_page.dart';
 
 class ChatsRecentesPage extends StatelessWidget {
   final bool isDark;
 
   ChatsRecentesPage({super.key, required this.isDark});
 
-  // 🔥 MOCK DOS CHATS RECENTES
   final List<Map<String, dynamic>> chatsRecentes = [
     {"nome": "Mari", "msg": "Você: Terminei o resumo de história!", "cor": Colors.purple, "letra": "M"},
     {"nome": "G1", "msg": "Tim: Alguém quer fazer call agora?", "cor": Colors.red, "letra": "G1"},
@@ -34,7 +33,6 @@ class ChatsRecentesPage extends StatelessWidget {
           final chat = chatsRecentes[index];
           return GestureDetector(
             onTap: () {
-              // Clicou na pessoa/grupo? Vai direto pro chat!
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => ChatPage(isDark: isDark, grupoNome: chat["nome"])),
@@ -61,7 +59,6 @@ class ChatsRecentesPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Avatar vazando na esquerda
                   Positioned(
                     left: -10,
                     top: 8,

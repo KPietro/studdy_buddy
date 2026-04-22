@@ -17,7 +17,6 @@ class _ChatPageState extends State<ChatPage> {
 
   final TextEditingController _msgController = TextEditingController();
 
-  // Mock de mensagens (Estilo Discord)
   final List<Map<String, dynamic>> mensagens = [
     {"nome": "Pietro", "msg": "E aí galera, bora fechar aquele simulado hoje?", "hora": "14:30", "cor": Colors.green},
     {"nome": "Mari", "msg": "Bora! Eu já fiz a parte de matemática.", "hora": "14:32", "cor": Colors.purple},
@@ -36,7 +35,6 @@ class _ChatPageState extends State<ChatPage> {
       ),
       body: Column(
         children: [
-          // 💬 LISTA DE MENSAGENS
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(20),
@@ -48,14 +46,12 @@ class _ChatPageState extends State<ChatPage> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Avatar na esquerda
                       CircleAvatar(
                         backgroundColor: m["cor"],
                         radius: 20,
                         child: Text(m["nome"][0], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                       const SizedBox(width: 15),
-                      // Conteúdo da Mensagem
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,7 +75,6 @@ class _ChatPageState extends State<ChatPage> {
             ),
           ),
 
-          // ✍️ BARRA DE DIGITAÇÃO
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
             decoration: BoxDecoration(
@@ -109,14 +104,12 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  // Botão de Enviar
                   CircleAvatar(
                     backgroundColor: widget.isDark ? Colors.red[700] : Colors.green,
                     radius: 24,
                     child: IconButton(
                       icon: const Icon(Icons.send, color: Colors.white),
                       onPressed: () {
-                        // Função visual para enviar mensagem na hora
                         if (_msgController.text.isNotEmpty) {
                           setState(() {
                             mensagens.add({
