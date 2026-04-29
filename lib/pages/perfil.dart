@@ -1,9 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
 class PerfilPage extends StatefulWidget {
   const PerfilPage({super.key});
@@ -13,312 +10,233 @@ class PerfilPage extends StatefulWidget {
 }
 
 class _PerfilPageState extends State<PerfilPage> {
-  // Controladores de texto
   final TextEditingController _bioController = TextEditingController();
   final TextEditingController _nomeController = TextEditingController();
   
-  // Instâncias do Firebase
   final User? user = FirebaseAuth.instance.currentUser;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // Estados da tela
   bool _isEditing = false;
-  bool _isUploading = false;
 
-  // Cores de Identidade Visual
+  // Cores de Identidade Visual (Figma)
   final Color figmaVinhoEscuro = const Color(0xFF1D0000);
   final Color figmaInputFill = const Color(0xFF2D0505);
   final Color botaoVermelho = const Color(0xFFDA2B2B);
 
-  // --- FUNÇÃO PARA PEGAR FOTO DA GALERIA E ENVIAR AO FIREBASE ---
-  Future<void> _fazerUploadFoto(String campo) async {
-    if (!_isEditing) return; // Só funciona se o modo de edição estiver ativo
-
-    final ImagePicker picker = ImagePicker();
-    // Abre a galeria do celular
-    final XFile? image = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 70, // Comprime a imagem para economizar espaço
-    );
-
-    if (image != null) {
-      setState(() => _isUploading = true);
-      try {
-        // 1. Referência do local onde o arquivo será salvo no Storage
-        // Exemplo de caminho: usuarios/ID_DO_USER/url_perfil.jpg
-        Reference ref = _storage
-            .ref()
-            .child('usuarios')
-            .child(user!.uid)
-            .child('$campo.jpg');
-
-        // 2. Upload do arquivo
-        UploadTask task = ref.putFile(File(image.path));
-        TaskSnapshot snapshot = await task;
-
-        // 3. Pegar a URL pública gerada pelo Firebase
-        String urlGerada = await snapshot.ref.getDownloadURL();
-
-        // 4. Salvar essa URL no Firestore dentro do documento do usuário
-        await _firestore.collection('usuarios').doc(user!.uid).update({
-          campo: urlGerada,
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Imagem atualizada com sucesso!")),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Erro ao enviar imagem: $e")),
-          );
-        }
-      } finally {
-        setState(() => _isUploading = false);
-      }
+  // Converte Hexadecimal para Color
+  Color _hexToColor(String hexCode) {
+    try {
+      String formattedHex = hexCode.replaceAll('#', '');
+      if (formattedHex.length == 6) formattedHex = 'FF$formattedHex';
+      return Color(int.parse('0x$formattedHex'));
+    } catch (e) {
+      return const Color(0xFF444444);
     }
   }
 
-  // --- FUNÇÃO PARA SALVAR TEXTOS (NOME E BIO) ---
+  // --- SELETOR DE AVATAR / COR / REMOVER FOTO ---
+  void _mostrarSeletorCustomizado() {
+    TextEditingController hexInputController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: figmaInputFill,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Personalizar Estilo", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              
+              // Avatares
+              const Align(alignment: Alignment.centerLeft, child: Text("Escolha um Avatar:", style: TextStyle(color: Colors.white70))),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 80,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: 4, 
+                  itemBuilder: (context, index) {
+                    String path = "assets/avatares/avatar${index + 1}.png";
+                    return GestureDetector(
+                      onTap: () {
+                        _firestore.collection('usuarios').doc(user!.uid).update({'url_perfil': path});
+                        Navigator.pop(context);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: CircleAvatar(radius: 35, backgroundImage: AssetImage(path)),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              
+              const Divider(color: Colors.white10, height: 30),
+
+              // Cor Hexadecimal
+              const Align(alignment: Alignment.centerLeft, child: Text("Cor de Fundo (Hex):", style: TextStyle(color: Colors.white70))),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: hexInputController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: "#FF0000",
+                        hintStyle: const TextStyle(color: Colors.white24),
+                        filled: true, fillColor: Colors.black26,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
+                    onPressed: () {
+                      _firestore.collection('usuarios').doc(user!.uid).update({
+                        'url_perfil': '', // LIMPA A FOTO PARA VOLTAR A LETRA
+                        'cor_hex': hexInputController.text.isNotEmpty ? hexInputController.text.trim() : "#444444",
+                      });
+                      Navigator.pop(context);
+                    },
+                    child: const Text("Aplicar"),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 15),
+
+              // BOTÃO PARA VOLTAR À INICIAL (REMOVER FOTO)
+              TextButton.icon(
+                onPressed: () {
+                  _firestore.collection('usuarios').doc(user!.uid).update({'url_perfil': ''});
+                  Navigator.pop(context);
+                },
+                icon: const Icon(Icons.delete_sweep, color: Colors.redAccent),
+                label: const Text("Remover Foto (Usar Inicial)", style: TextStyle(color: Colors.redAccent)),
+              ),
+              const SizedBox(height: 30),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _salvarPerfil() async {
-    try {
-      await _firestore.collection('usuarios').doc(user!.uid).update({
-        'nome_exibicao': _nomeController.text.trim(),
-        'bio': _bioController.text.trim(),
-      });
-      setState(() => _isEditing = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Perfil salvo!")),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro ao salvar: $e")),
-        );
-      }
-    }
+    await _firestore.collection('usuarios').doc(user!.uid).update({
+      'nome_exibicao': _nomeController.text.trim(),
+      'bio': _bioController.text.trim(),
+    });
+    setState(() => _isEditing = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (user == null) {
-      return const Scaffold(body: Center(child: Text("Usuário não logado")));
-    }
-
     return Scaffold(
       backgroundColor: figmaVinhoEscuro,
-      // Botão de Edição (Engrenagem / Check)
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          if (_isEditing) {
-            _salvarPerfil();
-          } else {
-            setState(() => _isEditing = true);
-          }
-        },
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: Icon(
-          _isEditing ? Icons.check_circle : Icons.settings,
-          color: botaoVermelho,
-          size: 45,
-        ),
+        onPressed: () => _isEditing ? _salvarPerfil() : setState(() => _isEditing = true),
+        backgroundColor: Colors.transparent, elevation: 0,
+        child: Icon(_isEditing ? Icons.check_circle : Icons.settings, color: botaoVermelho, size: 45),
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: _firestore.collection('usuarios').doc(user!.uid).snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Colors.red));
-          }
-
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(
-              child: Text("Dados não encontrados", style: TextStyle(color: Colors.white)),
-            );
-          }
+          if (!snapshot.hasData || !snapshot.data!.exists) return const Center(child: CircularProgressIndicator());
 
           var dados = snapshot.data!.data() as Map<String, dynamic>;
-          
-          // Sincroniza controllers com o banco apenas quando NÃO está editando
+          String? fotoUrl = dados['url_perfil'];
+          String corHex = dados['cor_hex'] ?? "#444444";
+          String nome = dados['nome_exibicao'] ?? "Usuário";
+          Color corDinamica = _hexToColor(corHex);
+
           if (!_isEditing) {
-            _nomeController.text = dados['nome_exibicao'] ?? dados['nome'] ?? "Usuário";
+            _nomeController.text = nome;
             _bioController.text = dados['bio'] ?? "";
           }
-
-          // Imagens (Usa links do banco ou placeholders se estiverem vazios)
-          String urlCapa = dados['url_capa'] ?? "https://via.placeholder.com/800x400/2D0505/FFFFFF?text=Capa";
-          String urlPerfil = dados['url_perfil'] ?? "https://www.w3schools.com/howto/img_avatar.png";
 
           return SingleChildScrollView(
             child: Column(
               children: [
-                // 1. ÁREA DAS FOTOS (CAPA E PERFIL)
+                // HEADER
                 Stack(
+                  alignment: Alignment.center,
                   clipBehavior: Clip.none,
                   children: [
-                    // Foto de Capa (Fundo)
-                    GestureDetector(
-                      onTap: () => _fazerUploadFoto('url_capa'),
-                      child: Container(
-                        height: 200,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: NetworkImage(urlCapa),
-                            fit: BoxFit.cover,
-                            colorFilter: _isEditing 
-                                ? ColorFilter.mode(Colors.black.withOpacity(0.4), BlendMode.darken) 
-                                : null,
-                          ),
-                        ),
-                        child: _isEditing 
-                            ? const Icon(Icons.camera_alt, color: Colors.white, size: 40) 
+                    Container(
+                      height: 200, width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: corDinamica,
+                        image: (fotoUrl != null && fotoUrl.isNotEmpty)
+                            ? DecorationImage(image: AssetImage(fotoUrl), fit: BoxFit.cover, opacity: 0.3)
                             : null,
                       ),
                     ),
-                    // Botão Voltar
-                    Positioned(
-                      top: 40,
-                      left: 15,
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                    // Foto de Perfil (Avatar)
                     Positioned(
                       bottom: -50,
-                      left: 20,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          GestureDetector(
-                            onTap: () => _fazerUploadFoto('url_perfil'),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Container(
-                                  width: 110,
-                                  height: 110,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 3),
-                                    image: DecorationImage(
-                                      image: NetworkImage(urlPerfil),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                                if (_isEditing)
-                                  Container(
-                                    width: 110,
-                                    height: 110,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.black38,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: _isUploading 
-                                        ? const Padding(
-                                            padding: EdgeInsets.all(35.0),
-                                            child: CircularProgressIndicator(color: Colors.white),
-                                          )
-                                        : const Icon(Icons.edit, color: Colors.white, size: 30),
-                                  ),
-                              ],
-                            ),
+                      child: GestureDetector(
+                        onTap: _mostrarSeletorCustomizado,
+                        child: CircleAvatar(
+                          radius: 55, backgroundColor: Colors.white,
+                          child: CircleAvatar(
+                            radius: 52, backgroundColor: corDinamica,
+                            backgroundImage: (fotoUrl != null && fotoUrl.isNotEmpty) ? AssetImage(fotoUrl) : null,
+                            child: (fotoUrl == null || fotoUrl.isEmpty)
+                                ? Text(nome[0].toUpperCase(), style: const TextStyle(fontSize: 45, color: Colors.white, fontWeight: FontWeight.bold))
+                                : null,
                           ),
-                          const SizedBox(width: 15),
-                          // Nome e Email
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _isEditing 
-                                ? SizedBox(
-                                    width: 180,
-                                    child: TextField(
-                                      controller: _nomeController,
-                                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                                      decoration: const InputDecoration(
-                                        isDense: true,
-                                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.red)),
-                                      ),
-                                    ),
-                                  )
-                                : Text(
-                                    _nomeController.text,
-                                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                                  ),
-                              Text(dados['email'] ?? "", style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                              const SizedBox(height: 10),
-                            ],
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 70),
+                const SizedBox(height: 60),
+                _isEditing 
+                  ? Padding(padding: const EdgeInsets.symmetric(horizontal: 50), child: TextField(controller: _nomeController, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 22)))
+                  : Text(nome, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                
+                // SELO ALUNO PRATA
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.grey[800], borderRadius: BorderRadius.circular(15)),
+                  child: const Text("ALUNO PRATA", style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
 
-                // 2. BIO
-                _buildSectionTitle("Sobre mim (Bio)"),
+                const SizedBox(height: 30),
+
+                _buildSectionTitle("Biografia"),
                 _buildContainerBox(
-                  height: 110,
                   child: TextField(
-                    controller: _bioController,
-                    enabled: _isEditing,
-                    maxLines: 3,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                    decoration: const InputDecoration(
-                      hintText: "Fale um pouco sobre você...",
-                      hintStyle: TextStyle(color: Colors.white30),
-                      border: InputBorder.none,
-                    ),
+                    controller: _bioController, enabled: _isEditing, maxLines: 3,
+                    style: const TextStyle(color: Colors.white70),
+                    decoration: const InputDecoration(border: InputBorder.none, hintText: "Sua bio..."),
                   ),
                 ),
 
-                // 3. ATIVIDADE (GRÁFICOS VISUAIS)
-                _buildSectionTitle("Progresso Semanal"),
+                // RESTAURAÇÃO DOS GRÁFICOS (ATIVIDADE SEMANAL)
+                _buildSectionTitle("Atividade Semanal"),
                 _buildContainerBox(
                   height: 150,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    children: _generateMockBars(),
+                    children: List.generate(10, (index) => Container(
+                      width: 15, 
+                      height: (index % 5 + 3) * 12.0,
+                      decoration: BoxDecoration(color: corDinamica, borderRadius: BorderRadius.circular(5)),
+                    )),
                   ),
                 ),
-
-                const SizedBox(height: 20),
-
-                // 4. CONQUISTAS / PONTOS
-                _buildSectionTitle("Conquistas"),
-                _buildContainerBox(
-                  height: 85,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.stars, color: Colors.amber, size: 45),
-                      const SizedBox(width: 15),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "${dados['pontos_total'] ?? 0} Pontos",
-                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          const Text("Nível: Estudante Prata", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 60),
+                const SizedBox(height: 50),
               ],
             ),
           );
@@ -327,47 +245,20 @@ class _PerfilPageState extends State<PerfilPage> {
     );
   }
 
-  // --- WIDGETS AUXILIARES ---
-
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title,
-          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-      ),
+      child: Align(alignment: Alignment.centerLeft, child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))),
     );
   }
 
-  Widget _buildContainerBox({required double height, required Widget child}) {
+  Widget _buildContainerBox({required Widget child, double? height}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(15),
-      width: double.infinity,
-      height: height,
-      decoration: BoxDecoration(
-        color: figmaInputFill,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white10, width: 1),
-      ),
+      width: double.infinity, height: height,
+      decoration: BoxDecoration(color: figmaInputFill, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white10)),
       child: child,
     );
-  }
-
-  List<Widget> _generateMockBars() {
-    // Gera 10 barrinhas de alturas variadas para o gráfico
-    return List.generate(10, (index) {
-      return Container(
-        width: 18,
-        height: (index % 4 + 2) * 15.0,
-        decoration: BoxDecoration(
-          color: botaoVermelho.withOpacity(0.8),
-          borderRadius: BorderRadius.circular(6),
-        ),
-      );
-    });
   }
 }
