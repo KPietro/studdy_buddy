@@ -69,6 +69,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+    - assets/Avatares/Avatar1.png
+    - assets/Avatares/Avatar2.webp
 flutter_icons:
   android: true
   ios: true

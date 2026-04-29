@@ -61,7 +61,7 @@ class _PerfilPageState extends State<PerfilPage> {
                   scrollDirection: Axis.horizontal,
                   itemCount: 4, 
                   itemBuilder: (context, index) {
-                    String path = "assets/avatares/avatar${index + 1}.png";
+                    String path = "assets/Avatares/Avatar${index + 1}.png";
                     return GestureDetector(
                       onTap: () {
                         _firestore.collection('usuarios').doc(user!.uid).update({'url_perfil': path});
