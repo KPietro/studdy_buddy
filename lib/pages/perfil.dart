@@ -185,7 +185,6 @@ class _PerfilPageState extends State<PerfilPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: figmaVinhoEscuro,
-      // REMOVIDO: floatingActionButton da engrenagem, conforme solicitado.
       body: StreamBuilder<DocumentSnapshot>(
         stream: _firestore.collection('usuarios').doc(user!.uid).snapshots(),
         builder: (context, snapshot) {
@@ -206,11 +205,12 @@ class _PerfilPageState extends State<PerfilPage> {
           return SingleChildScrollView(
             child: Column(
               children: [
-                // HEADER
+                // HEADER COM CAPA, FOTO E BOTÃO DE VOLTAR
                 Stack(
                   alignment: Alignment.center,
                   clipBehavior: Clip.none,
                   children: [
+                    // Capa de Fundo
                     Container(
                       height: 200,
                       width: double.infinity,
@@ -225,6 +225,26 @@ class _PerfilPageState extends State<PerfilPage> {
                             : null,
                       ),
                     ),
+
+                    // BOTÃO DE VOLTAR (Estilo Ranking)
+                    Positioned(
+                      top:
+                          40, // Margem segura para não ficar em cima da barra de status do celular
+                      left: 20,
+                      child: CircleAvatar(
+                        backgroundColor: const Color(0xFFB30000),
+                        radius: 20,
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.black,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ),
+                    ),
+
+                    // Avatar do Usuário
                     Positioned(
                       bottom: -50,
                       child: GestureDetector(
@@ -437,10 +457,8 @@ class _PerfilPageState extends State<PerfilPage> {
       width: double.infinity,
       height: height,
       decoration: BoxDecoration(
-        // Clareia levemente o fundo quando entra em modo de edição
         color: isEditing ? const Color(0xFF3A0A0A) : figmaInputFill,
         borderRadius: BorderRadius.circular(15),
-        // Borda vermelha se estiver editando, borda fraca se não
         border: Border.all(color: isEditing ? botaoVermelho : Colors.white10),
       ),
       child: child,
