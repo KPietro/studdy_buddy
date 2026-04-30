@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'ranking_semanal.dart';
-//import 'registro_atividade.dart';
+import 'registro_atividade.dart';
 import 'registro_atividade_dialog.dart';
 import 'chat_page.dart';
 import '../controllers/grupo_controller.dart';
@@ -129,14 +129,15 @@ class GrupoPage extends StatelessWidget {
 
                   Row(
                     children: [
+                      // BOTAO DE ADICIONAR ATIVIDADE (AGORA ABRE A PÁGINA!)
                       GestureDetector(
                         onTap: () {
-                          RegistroAtividadeDialog.mostrar(
+                          Navigator.push(
                             context,
-                            groupId:
-                                grupoId, // Usa o ID que veio no construtor da página
-                            userId: GrupoController
-                                .currentUserId, // Fica só assim, sem o ?? ""
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  RegistroAtividadePage(isDark: isDark),
+                            ),
                           );
                         },
                         child: const Icon(

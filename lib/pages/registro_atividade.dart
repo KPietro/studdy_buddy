@@ -47,9 +47,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     );
   }
 
-  // ==========================================
-  // SUB ABA 1: ATIVIDADE COMUM
-  // ==========================================
   Widget _buildAbaComum() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -72,7 +69,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
                 style: TextStyle(color: textMain, fontWeight: FontWeight.bold),
               ),
               subtitle: Text(
-                "Desative para inserir o tempo manualmente",
+                "Desative para inserir tempo manual",
                 style: TextStyle(
                   color: textMain.withOpacity(0.6),
                   fontSize: 12,
@@ -85,7 +82,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
           ),
           const SizedBox(height: 20),
 
-          // Lógica condicional: Mostra o Timer OU o campo de digitar o tempo
           if (usarTimer)
             Center(
               child: Column(
@@ -141,15 +137,12 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
           const SizedBox(height: 10),
           _buildTextField("Descrição opcional...", maxLines: 3),
           const SizedBox(height: 30),
-          _buildBotaoEnviar(),
+          _buildBotaoEnviar("Enviar Atividade"),
         ],
       ),
     );
   }
 
-  // ==========================================
-  // SUB ABA 2: TAREFA MAIOR (Ex: Simulado)
-  // ==========================================
   Widget _buildAbaMaior() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -186,7 +179,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
 
           const SizedBox(height: 20),
           _buildBotaoUpload(
-            "Adicionar Foto/Print do Resultado (OBRIGATÓRIO)",
+            "Adicionar Foto/Print (OBRIGATÓRIO)",
             Icons.camera_alt,
             obrigatorio: true,
           ),
@@ -199,7 +192,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
           ),
 
           const SizedBox(height: 30),
-          _buildBotaoEnviar(),
+          _buildBotaoEnviar("Enviar Atividade"),
         ],
       ),
     );
@@ -270,7 +263,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     );
   }
 
-  Widget _buildBotaoEnviar() {
+  Widget _buildBotaoEnviar(String textoBotao) {
     return SizedBox(
       width: double.infinity,
       height: 50,
@@ -283,15 +276,13 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
         ),
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Atividade enviada para aprovação do Grupo!"),
-            ),
+            SnackBar(content: Text("$textoBotao enviada com sucesso!")),
           );
           Navigator.pop(context);
         },
-        child: const Text(
-          "Enviar Atividade",
-          style: TextStyle(
+        child: Text(
+          textoBotao,
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 18,
             fontWeight: FontWeight.bold,
