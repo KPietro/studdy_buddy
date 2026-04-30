@@ -12,13 +12,13 @@ class PerfilPage extends StatefulWidget {
 class _PerfilPageState extends State<PerfilPage> {
   final TextEditingController _bioController = TextEditingController();
   final TextEditingController _nomeController = TextEditingController();
-  
+
   final User? user = FirebaseAuth.instance.currentUser;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   bool _isEditing = false;
 
-  // Cores de Identidade Visual (Figma)
+  // Cores de Identidade Visual (Figma) mantidas intactas
   final Color figmaVinhoEscuro = const Color(0xFF1D0000);
   final Color figmaInputFill = const Color(0xFF2D0505);
   final Color botaoVermelho = const Color(0xFFDA2B2B);
@@ -42,44 +42,75 @@ class _PerfilPageState extends State<PerfilPage> {
       context: context,
       backgroundColor: figmaInputFill,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Personalizar Estilo", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                "Personalizar Estilo",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 20),
-              
+
               // Avatares
-              const Align(alignment: Alignment.centerLeft, child: Text("Escolha um Avatar:", style: TextStyle(color: Colors.white70))),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Escolha um Avatar:",
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
               const SizedBox(height: 10),
               SizedBox(
                 height: 80,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: 4, 
+                  itemCount: 4,
                   itemBuilder: (context, index) {
                     String path = "assets/Avatares/Avatar${index + 1}.png";
                     return GestureDetector(
                       onTap: () {
-                        _firestore.collection('usuarios').doc(user!.uid).update({'url_perfil': path});
+                        _firestore.collection('usuarios').doc(user!.uid).update(
+                          {'url_perfil': path},
+                        );
                         Navigator.pop(context);
                       },
                       child: Padding(
                         padding: const EdgeInsets.only(right: 12),
-                        child: CircleAvatar(radius: 35, backgroundImage: AssetImage(path)),
+                        child: CircleAvatar(
+                          radius: 35,
+                          backgroundImage: AssetImage(path),
+                        ),
                       ),
                     );
                   },
                 ),
               ),
-              
+
               const Divider(color: Colors.white10, height: 30),
 
               // Cor Hexadecimal
-              const Align(alignment: Alignment.centerLeft, child: Text("Cor de Fundo (Hex):", style: TextStyle(color: Colors.white70))),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Cor de Fundo (Hex):",
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -90,18 +121,26 @@ class _PerfilPageState extends State<PerfilPage> {
                       decoration: InputDecoration(
                         hintText: "#FF0000",
                         hintStyle: const TextStyle(color: Colors.white24),
-                        filled: true, fillColor: Colors.black26,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                        filled: true,
+                        fillColor: Colors.black26,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 10),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueGrey,
+                    ),
                     onPressed: () {
                       _firestore.collection('usuarios').doc(user!.uid).update({
                         'url_perfil': '', // LIMPA A FOTO PARA VOLTAR A LETRA
-                        'cor_hex': hexInputController.text.isNotEmpty ? hexInputController.text.trim() : "#444444",
+                        'cor_hex': hexInputController.text.isNotEmpty
+                            ? hexInputController.text.trim()
+                            : "#444444",
                       });
                       Navigator.pop(context);
                     },
@@ -115,11 +154,16 @@ class _PerfilPageState extends State<PerfilPage> {
               // BOTÃO PARA VOLTAR À INICIAL (REMOVER FOTO)
               TextButton.icon(
                 onPressed: () {
-                  _firestore.collection('usuarios').doc(user!.uid).update({'url_perfil': ''});
+                  _firestore.collection('usuarios').doc(user!.uid).update({
+                    'url_perfil': '',
+                  });
                   Navigator.pop(context);
                 },
                 icon: const Icon(Icons.delete_sweep, color: Colors.redAccent),
-                label: const Text("Remover Foto (Usar Inicial)", style: TextStyle(color: Colors.redAccent)),
+                label: const Text(
+                  "Remover Foto (Usar Inicial)",
+                  style: TextStyle(color: Colors.redAccent),
+                ),
               ),
               const SizedBox(height: 30),
             ],
@@ -141,15 +185,12 @@ class _PerfilPageState extends State<PerfilPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: figmaVinhoEscuro,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _isEditing ? _salvarPerfil() : setState(() => _isEditing = true),
-        backgroundColor: Colors.transparent, elevation: 0,
-        child: Icon(_isEditing ? Icons.check_circle : Icons.settings, color: botaoVermelho, size: 45),
-      ),
+      // REMOVIDO: floatingActionButton da engrenagem, conforme solicitado.
       body: StreamBuilder<DocumentSnapshot>(
         stream: _firestore.collection('usuarios').doc(user!.uid).snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData || !snapshot.data!.exists) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData || !snapshot.data!.exists)
+            return const Center(child: CircularProgressIndicator());
 
           var dados = snapshot.data!.data() as Map<String, dynamic>;
           String? fotoUrl = dados['url_perfil'];
@@ -171,11 +212,16 @@ class _PerfilPageState extends State<PerfilPage> {
                   clipBehavior: Clip.none,
                   children: [
                     Container(
-                      height: 200, width: double.infinity,
+                      height: 200,
+                      width: double.infinity,
                       decoration: BoxDecoration(
                         color: corDinamica,
                         image: (fotoUrl != null && fotoUrl.isNotEmpty)
-                            ? DecorationImage(image: AssetImage(fotoUrl), fit: BoxFit.cover, opacity: 0.3)
+                            ? DecorationImage(
+                                image: AssetImage(fotoUrl),
+                                fit: BoxFit.cover,
+                                opacity: 0.3,
+                              )
                             : null,
                       ),
                     ),
@@ -184,12 +230,24 @@ class _PerfilPageState extends State<PerfilPage> {
                       child: GestureDetector(
                         onTap: _mostrarSeletorCustomizado,
                         child: CircleAvatar(
-                          radius: 55, backgroundColor: Colors.white,
+                          radius: 55,
+                          backgroundColor: Colors.white,
                           child: CircleAvatar(
-                            radius: 52, backgroundColor: corDinamica,
-                            backgroundImage: (fotoUrl != null && fotoUrl.isNotEmpty) ? AssetImage(fotoUrl) : null,
+                            radius: 52,
+                            backgroundColor: corDinamica,
+                            backgroundImage:
+                                (fotoUrl != null && fotoUrl.isNotEmpty)
+                                ? AssetImage(fotoUrl)
+                                : null,
                             child: (fotoUrl == null || fotoUrl.isEmpty)
-                                ? Text(nome[0].toUpperCase(), style: const TextStyle(fontSize: 45, color: Colors.white, fontWeight: FontWeight.bold))
+                                ? Text(
+                                    nome[0].toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 45,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
                                 : null,
                           ),
                         ),
@@ -199,26 +257,125 @@ class _PerfilPageState extends State<PerfilPage> {
                 ),
 
                 const SizedBox(height: 60),
-                _isEditing 
-                  ? Padding(padding: const EdgeInsets.symmetric(horizontal: 50), child: TextField(controller: _nomeController, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 22)))
-                  : Text(nome, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-                
+                _isEditing
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 50),
+                        child: TextField(
+                          controller: _nomeController,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        nome,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
                 // SELO ALUNO PRATA
                 Container(
                   margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.grey[800], borderRadius: BorderRadius.circular(15)),
-                  child: const Text("ALUNO PRATA", style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[800],
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: const Text(
+                    "ALUNO PRATA",
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 30),
 
                 _buildSectionTitle("Biografia"),
-                _buildContainerBox(
-                  child: TextField(
-                    controller: _bioController, enabled: _isEditing, maxLines: 3,
-                    style: const TextStyle(color: Colors.white70),
-                    decoration: const InputDecoration(border: InputBorder.none, hintText: "Sua bio..."),
+
+                // --- ÁREA DA BIOGRAFIA COM CADEADO ---
+                Stack(
+                  children: [
+                    _buildContainerBox(
+                      isEditing: _isEditing, // Aplica o efeito visual aqui
+                      child: TextField(
+                        controller: _bioController,
+                        enabled: _isEditing,
+                        maxLines: 3,
+                        style: TextStyle(
+                          color: _isEditing ? Colors.white : Colors.white70,
+                        ), // Efeito no texto
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: "Sua bio...",
+                        ),
+                      ),
+                    ),
+                    // O CADEADO NO CANTO SUPERIOR DIREITO DA CAIXA
+                    Positioned(
+                      top: 15,
+                      right: 35,
+                      child: Icon(
+                        _isEditing ? Icons.lock_open : Icons.lock,
+                        color: _isEditing
+                            ? const Color(0xFF4CAF50)
+                            : Colors.white38,
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ),
+
+                // --- BOTÕES DE EDITAR E SALVAR ---
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      // Botão Editar
+                      OutlinedButton.icon(
+                        onPressed: _isEditing
+                            ? null
+                            : () => setState(() => _isEditing = true),
+                        icon: const Icon(Icons.edit, size: 16),
+                        label: const Text("Editar"),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          disabledForegroundColor: Colors.white38,
+                          side: BorderSide(
+                            color: _isEditing
+                                ? Colors.transparent
+                                : Colors.white38,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      // Botão Salvar
+                      ElevatedButton.icon(
+                        onPressed: _isEditing ? _salvarPerfil : null,
+                        icon: const Icon(Icons.save, size: 16),
+                        label: const Text("Salvar"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: botaoVermelho,
+                          disabledBackgroundColor: Colors.white10,
+                          foregroundColor: Colors.white,
+                          disabledForegroundColor: Colors.white38,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
@@ -229,11 +386,17 @@ class _PerfilPageState extends State<PerfilPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    children: List.generate(10, (index) => Container(
-                      width: 15, 
-                      height: (index % 5 + 3) * 12.0,
-                      decoration: BoxDecoration(color: corDinamica, borderRadius: BorderRadius.circular(5)),
-                    )),
+                    children: List.generate(
+                      10,
+                      (index) => Container(
+                        width: 15,
+                        height: (index % 5 + 3) * 12.0,
+                        decoration: BoxDecoration(
+                          color: corDinamica,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 50),
@@ -248,16 +411,38 @@ class _PerfilPageState extends State<PerfilPage> {
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-      child: Align(alignment: Alignment.centerLeft, child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildContainerBox({required Widget child, double? height}) {
+  // --- FUNÇÃO _buildContainerBox MODIFICADA PARA EFEITOS VISUAIS ---
+  Widget _buildContainerBox({
+    required Widget child,
+    double? height,
+    bool isEditing = false,
+  }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(15),
-      width: double.infinity, height: height,
-      decoration: BoxDecoration(color: figmaInputFill, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white10)),
+      width: double.infinity,
+      height: height,
+      decoration: BoxDecoration(
+        // Clareia levemente o fundo quando entra em modo de edição
+        color: isEditing ? const Color(0xFF3A0A0A) : figmaInputFill,
+        borderRadius: BorderRadius.circular(15),
+        // Borda vermelha se estiver editando, borda fraca se não
+        border: Border.all(color: isEditing ? botaoVermelho : Colors.white10),
+      ),
       child: child,
     );
   }
