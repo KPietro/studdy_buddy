@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CriacaoGrupoPage extends StatefulWidget {
   final bool isDark;
@@ -20,10 +22,89 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
   final tituloSemanalController = TextEditingController();
   final tituloTotalController = TextEditingController();
 
+  bool isLoading = false; // Variável para controlar o botão de loading
+
+  // --- NOVA FUNÇÃO: LIGAÇÃO REAL AO FIREBASE ---
+  Future<void> _criarGrupo() async {
+    if (nomeController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("O nome do grupo é obrigatório!")),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      // 1. Cria o documento do Grupo na coleção 'grupos'
+      DocumentReference novoGrupoRef = await FirebaseFirestore.instance
+          .collection('grupos')
+          .add({
+            'nome': nomeController.text.trim(),
+            'pontos_minuto':
+                int.tryParse(pontosMinutoController.text.trim()) ?? 1,
+            'meta_maior': int.tryParse(metaMaiorController.text.trim()) ?? 0,
+            'titulo_semanal': tituloSemanalController.text.trim(),
+            'titulo_total': tituloTotalController.text.trim(),
+            'criador_id': user?.uid,
+            'data_criacao': FieldValue.serverTimestamp(),
+          });
+
+      // 2. Adiciona o utilizador atual como o primeiro membro na subcoleção 'membros'
+      if (user != null) {
+        // Vai buscar o nome e foto do utilizador para guardar no grupo
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('usuarios')
+            .doc(user.uid)
+            .get();
+        String nomeExibicao = "Líder";
+        String fotoUrl = "";
+
+        if (userDoc.exists) {
+          var dados = userDoc.data() as Map<String, dynamic>;
+          nomeExibicao = dados['nome_exibicao'] ?? dados['nome'] ?? "Líder";
+          fotoUrl = dados['url_perfil'] ?? dados['foto_url'] ?? "";
+        }
+
+        await novoGrupoRef.collection('membros').doc(user.uid).set({
+          'nome': nomeExibicao,
+          'fotoPerfil': fotoUrl,
+          'pontosSemanais': 0,
+          'pontosTotais': 0,
+          'atividadesMaioresSemanais': 0,
+          'atividadesMaioresTotais': 0,
+          'cargo': 'admin', // Identifica o criador do grupo
+          'data_entrada': FieldValue.serverTimestamp(),
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Grupo criado com sucesso!")),
+        );
+        Navigator.pop(context); // Regressa à HomePage
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Erro ao criar o grupo. Tente novamente."),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2, // Mesma lógica de Abas da tela de Atividades!
+      length: 2,
       child: Scaffold(
         backgroundColor: bgMain,
         appBar: AppBar(
@@ -113,7 +194,6 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
     );
   }
 
-  // --- Widgets Auxiliares idênticos aos da outra tela ---
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, top: 15),
@@ -167,20 +247,18 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
             borderRadius: BorderRadius.circular(15),
           ),
         ),
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Grupo criado com sucesso!")),
-          );
-          Navigator.pop(context);
-        },
-        child: const Text(
-          "Criar Grupo",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        // Agora o botão chama a nossa função de criar com o Firebase!
+        onPressed: isLoading ? null : _criarGrupo,
+        child: isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text(
+                "Criar Grupo",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
