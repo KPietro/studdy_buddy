@@ -284,7 +284,7 @@ class _HomePageState extends State<HomePage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => ChatPage(
+                                    builder: (_) => GrupoPage(
                                       isDark: isDark,
                                       grupoNome: "Grupo Estudos",
                                       grupoId: "xtMuniqz8rcijR03NZ5d",
