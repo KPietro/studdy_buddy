@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // Import necessário
 
 class PerfilPage extends StatefulWidget {
   const PerfilPage({super.key});
@@ -18,7 +19,7 @@ class _PerfilPageState extends State<PerfilPage> {
 
   bool _isEditing = false;
 
-  // Cores de Identidade Visual (Figma) mantidas intactas
+  // Cores de Identidade Visual (Figma)
   final Color figmaVinhoEscuro = const Color(0xFF1D0000);
   final Color figmaInputFill = const Color(0xFF2D0505);
   final Color botaoVermelho = const Color(0xFFDA2B2B);
@@ -34,9 +35,9 @@ class _PerfilPageState extends State<PerfilPage> {
     }
   }
 
-  // --- SELETOR DE AVATAR / COR / REMOVER FOTO ---
-  void _mostrarSeletorCustomizado() {
-    TextEditingController hexInputController = TextEditingController();
+  // --- SELETOR DE AVATAR COM RODA DE CORES ---
+  void _mostrarSeletorCustomizado(Color corAtual) {
+    Color corSelecionada = corAtual;
 
     showModalBottomSheet(
       context: context,
@@ -47,32 +48,20 @@ class _PerfilPageState extends State<PerfilPage> {
       ),
       builder: (context) {
         return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
                 "Personalizar Estilo",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
 
-              // Avatares
+              // Avatares Prontos
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  "Escolha um Avatar:",
-                  style: TextStyle(color: Colors.white70),
-                ),
+                child: Text("Escolha um Avatar:", style: TextStyle(color: Colors.white70)),
               ),
               const SizedBox(height: 10),
               SizedBox(
@@ -84,9 +73,9 @@ class _PerfilPageState extends State<PerfilPage> {
                     String path = "assets/Avatares/Avatar${index + 1}.png";
                     return GestureDetector(
                       onTap: () {
-                        _firestore.collection('usuarios').doc(user!.uid).update(
-                          {'url_perfil': path},
-                        );
+                        _firestore.collection('usuarios').doc(user!.uid).update({
+                          'url_perfil': path,
+                        });
                         Navigator.pop(context);
                       },
                       child: Padding(
@@ -103,69 +92,57 @@ class _PerfilPageState extends State<PerfilPage> {
 
               const Divider(color: Colors.white10, height: 30),
 
-              // Cor Hexadecimal
+              // Roda de Cores
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  "Cor de Fundo (Hex):",
-                  style: TextStyle(color: Colors.white70),
-                ),
+                child: Text("Cor de Fundo (Roda):", style: TextStyle(color: Colors.white70)),
               ),
               const SizedBox(height: 10),
+              ColorPicker(
+                pickerColor: corSelecionada,
+                onColorChanged: (Color color) {
+                  corSelecionada = color;
+                },
+                pickerAreaHeightPercent: 0.5,
+                enableAlpha: false,
+                displayThumbColor: true,
+                paletteType: PaletteType.hsvWithHue,
+                pickerAreaBorderRadius: const BorderRadius.all(Radius.circular(10)),
+              ),
+
+              const SizedBox(height: 20),
+
               Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: hexInputController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: "#FF0000",
-                        hintStyle: const TextStyle(color: Colors.white24),
-                        filled: true,
-                        fillColor: Colors.black26,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
+                    child: TextButton.icon(
+                      onPressed: () {
+                        _firestore.collection('usuarios').doc(user!.uid).update({
+                          'url_perfil': '',
+                        });
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.refresh, color: Colors.redAccent),
+                      label: const Text("Usar Inicial", style: TextStyle(color: Colors.redAccent)),
                     ),
                   ),
                   const SizedBox(width: 10),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueGrey,
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: botaoVermelho),
                     onPressed: () {
+                      // Converte cor selecionada para String Hex
+                      String hexString = '#${corSelecionada.value.toRadixString(16).substring(2).toUpperCase()}';
                       _firestore.collection('usuarios').doc(user!.uid).update({
-                        'url_perfil': '', // LIMPA A FOTO PARA VOLTAR A LETRA
-                        'cor_hex': hexInputController.text.isNotEmpty
-                            ? hexInputController.text.trim()
-                            : "#444444",
+                        'url_perfil': '', 
+                        'cor_hex': hexString,
                       });
                       Navigator.pop(context);
                     },
-                    child: const Text("Aplicar"),
+                    child: const Text("Aplicar Cor"),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 15),
-
-              // BOTÃO PARA VOLTAR À INICIAL (REMOVER FOTO)
-              TextButton.icon(
-                onPressed: () {
-                  _firestore.collection('usuarios').doc(user!.uid).update({
-                    'url_perfil': '',
-                  });
-                  Navigator.pop(context);
-                },
-                icon: const Icon(Icons.delete_sweep, color: Colors.redAccent),
-                label: const Text(
-                  "Remover Foto (Usar Inicial)",
-                  style: TextStyle(color: Colors.redAccent),
-                ),
-              ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 10),
             ],
           ),
         );
@@ -188,8 +165,9 @@ class _PerfilPageState extends State<PerfilPage> {
       body: StreamBuilder<DocumentSnapshot>(
         stream: _firestore.collection('usuarios').doc(user!.uid).snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData || !snapshot.data!.exists)
+          if (!snapshot.hasData || !snapshot.data!.exists) {
             return const Center(child: CircularProgressIndicator());
+          }
 
           var dados = snapshot.data!.data() as Map<String, dynamic>;
           String? fotoUrl = dados['url_perfil'];
@@ -205,12 +183,11 @@ class _PerfilPageState extends State<PerfilPage> {
           return SingleChildScrollView(
             child: Column(
               children: [
-                // HEADER COM CAPA, FOTO E BOTÃO DE VOLTAR
+                // HEADER COM CAPA E AVATAR
                 Stack(
                   alignment: Alignment.center,
                   clipBehavior: Clip.none,
                   children: [
-                    // Capa de Fundo
                     Container(
                       height: 200,
                       width: double.infinity,
@@ -226,47 +203,38 @@ class _PerfilPageState extends State<PerfilPage> {
                       ),
                     ),
 
-                    // BOTÃO DE VOLTAR (Estilo Ranking)
+                    // BOTÃO VOLTAR
                     Positioned(
-                      top:
-                          40, // Margem segura para não ficar em cima da barra de status do celular
+                      top: 40,
                       left: 20,
                       child: CircleAvatar(
                         backgroundColor: const Color(0xFFB30000),
                         radius: 20,
                         child: IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back,
-                            color: Colors.black,
-                          ),
+                          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ),
                     ),
 
-                    // Avatar do Usuário
+                    // AVATAR
                     Positioned(
                       bottom: -50,
                       child: GestureDetector(
-                        onTap: _mostrarSeletorCustomizado,
+                        onTap: () => _mostrarSeletorCustomizado(corDinamica),
                         child: CircleAvatar(
                           radius: 55,
                           backgroundColor: Colors.white,
                           child: CircleAvatar(
                             radius: 52,
                             backgroundColor: corDinamica,
-                            backgroundImage:
-                                (fotoUrl != null && fotoUrl.isNotEmpty)
+                            backgroundImage: (fotoUrl != null && fotoUrl.isNotEmpty)
                                 ? AssetImage(fotoUrl)
                                 : null,
                             child: (fotoUrl == null || fotoUrl.isEmpty)
                                 ? Text(
-                                    nome[0].toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 45,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    nome.isNotEmpty ? nome[0].toUpperCase() : "?",
+                                    style: const TextStyle(fontSize: 45, color: Colors.white, fontWeight: FontWeight.bold),
                                   )
                                 : null,
                           ),
@@ -277,146 +245,102 @@ class _PerfilPageState extends State<PerfilPage> {
                 ),
 
                 const SizedBox(height: 60),
+
+                // NOME
                 _isEditing
                     ? Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 50),
                         child: TextField(
                           controller: _nomeController,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
+                          style: const TextStyle(color: Colors.white, fontSize: 22),
+                          decoration: const InputDecoration(
+                            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.red)),
                           ),
                         ),
                       )
-                    : Text(
-                        nome,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    : Text(nome, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
 
                 // SELO ALUNO PRATA
                 Container(
                   margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[800],
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: const Text(
-                    "ALUNO PRATA",
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.grey[800], borderRadius: BorderRadius.circular(15)),
+                  child: const Text("ALUNO PRATA", style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
                 ),
 
                 const SizedBox(height: 30),
 
                 _buildSectionTitle("Biografia"),
 
-                // --- ÁREA DA BIOGRAFIA COM CADEADO ---
+                // BIOGRAFIA COM CADEADO
                 Stack(
                   children: [
                     _buildContainerBox(
-                      isEditing: _isEditing, // Aplica o efeito visual aqui
+                      isEditing: _isEditing,
                       child: TextField(
                         controller: _bioController,
                         enabled: _isEditing,
                         maxLines: 3,
-                        style: TextStyle(
-                          color: _isEditing ? Colors.white : Colors.white70,
-                        ), // Efeito no texto
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: "Sua bio...",
-                        ),
+                        style: TextStyle(color: _isEditing ? Colors.white : Colors.white70),
+                        decoration: const InputDecoration(border: InputBorder.none, hintText: "Sua bio..."),
                       ),
                     ),
-                    // O CADEADO NO CANTO SUPERIOR DIREITO DA CAIXA
                     Positioned(
                       top: 15,
                       right: 35,
                       child: Icon(
                         _isEditing ? Icons.lock_open : Icons.lock,
-                        color: _isEditing
-                            ? const Color(0xFF4CAF50)
-                            : Colors.white38,
+                        color: _isEditing ? const Color(0xFF4CAF50) : Colors.white38,
                         size: 20,
                       ),
                     ),
                   ],
                 ),
 
-                // --- BOTÕES DE EDITAR E SALVAR ---
+                // BOTÕES EDITAR/SALVAR
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      // Botão Editar
                       OutlinedButton.icon(
-                        onPressed: _isEditing
-                            ? null
-                            : () => setState(() => _isEditing = true),
+                        onPressed: _isEditing ? null : () => setState(() => _isEditing = true),
                         icon: const Icon(Icons.edit, size: 16),
                         label: const Text("Editar"),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
-                          disabledForegroundColor: Colors.white38,
-                          side: BorderSide(
-                            color: _isEditing
-                                ? Colors.transparent
-                                : Colors.white38,
-                          ),
+                          side: BorderSide(color: _isEditing ? Colors.transparent : Colors.white38),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      // Botão Salvar
                       ElevatedButton.icon(
                         onPressed: _isEditing ? _salvarPerfil : null,
                         icon: const Icon(Icons.save, size: 16),
                         label: const Text("Salvar"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: botaoVermelho,
-                          disabledBackgroundColor: Colors.white10,
                           foregroundColor: Colors.white,
-                          disabledForegroundColor: Colors.white38,
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                // RESTAURAÇÃO DOS GRÁFICOS (ATIVIDADE SEMANAL)
                 _buildSectionTitle("Atividade Semanal"),
                 _buildContainerBox(
                   height: 150,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    children: List.generate(
-                      10,
-                      (index) => Container(
-                        width: 15,
-                        height: (index % 5 + 3) * 12.0,
-                        decoration: BoxDecoration(
-                          color: corDinamica,
-                          borderRadius: BorderRadius.circular(5),
-                        ),
+                    children: List.generate(10, (index) => Container(
+                      width: 15,
+                      height: (index % 5 + 3) * 12.0,
+                      decoration: BoxDecoration(
+                        color: corDinamica,
+                        borderRadius: BorderRadius.circular(5),
                       ),
-                    ),
+                    )),
                   ),
                 ),
                 const SizedBox(height: 50),
@@ -433,24 +357,12 @@ class _PerfilPageState extends State<PerfilPage> {
       padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
       ),
     );
   }
 
-  // --- FUNÇÃO _buildContainerBox MODIFICADA PARA EFEITOS VISUAIS ---
-  Widget _buildContainerBox({
-    required Widget child,
-    double? height,
-    bool isEditing = false,
-  }) {
+  Widget _buildContainerBox({required Widget child, double? height, bool isEditing = false}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(15),

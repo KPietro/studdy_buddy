@@ -30,6 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_colorpicker: ^1.1.0
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.2.2
   curved_navigation_bar: ^1.0.6
@@ -70,7 +71,7 @@ flutter:
   assets:
     - assets/
     - assets/Avatares/Avatar1.png
-    - assets/Avatares/Avatar2.webp
+    - assets/Avatares/Avatar2.png
 flutter_icons:
   android: true
   ios: true
