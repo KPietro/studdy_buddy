@@ -6,9 +6,11 @@ import 'package:firebase_core/firebase_core.dart';
 // 🔥 NOVOS IMPORTS
 import 'package:provider/provider.dart';
 import 'controllers/settings_controller.dart';
-
 import 'controllers/theme_controller.dart';
+
+// Importando a tela de Login e o novo AuthCheck
 import 'pages/login.dart';
+import 'pages/auth_check.dart'; // 🔥 NOVO: Import do arquivo que criamos!
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +19,7 @@ void main() async {
 
   await ThemeController.loadTheme();
 
-  // 🔥 NOVO: carregar configurações
+  // 🔥 NOVO: carregar configurações (MANTIDO INTACTO)
   final settings = SettingsController();
   await settings.loadSettings();
 
@@ -37,7 +39,7 @@ class StuddyBuddyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🔥 NOVO
+    // 🔥 NOVO (MANTIDO INTACTO)
     final settings = Provider.of<SettingsController>(context);
 
     return MaterialApp(
@@ -47,16 +49,17 @@ class StuddyBuddyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Studdy-Buddy',
 
-      // 🔥 TEMA GLOBAL
+      // 🔥 TEMA GLOBAL (MANTIDO INTACTO)
       theme: ThemeData(
-        brightness:
-            settings.isDarkMode ? Brightness.dark : Brightness.light,
+        brightness: settings.isDarkMode ? Brightness.dark : Brightness.light,
         textTheme: TextTheme(
           bodyMedium: TextStyle(fontSize: settings.fontSize),
         ),
       ),
 
-      home: const LoginPage(),
+      // 🔥 A MÁGICA ACONTECE AQUI:
+      // Em vez de ir pro LoginPage, ele vai pro AuthCheck ver se tem alguém logado!
+      home: const AuthCheck(),
     );
   }
 }
