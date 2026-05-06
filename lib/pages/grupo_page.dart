@@ -25,70 +25,14 @@ class GrupoPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgMain,
-      // --- BARRA DE NAVEGAÇÃO INFERIOR ANIMADA ---
-      bottomNavigationBar: CurvedNavigationBar(
-        backgroundColor: bgMain,
-        color: isDark ? const Color(0xFF4A0000) : const Color(0xFF4CAF50),
-        buttonBackgroundColor: isDark ? const Color(0xFF4A0000) : const Color(0xFF4CAF50),
-        height: 60,
-        animationDuration: const Duration(milliseconds: 300),
-        index: 1, // Começa no meio (Chat) por padrão visual
-        items: const <Widget>[
-          Icon(Icons.add_circle_outline, color: Colors.white, size: 30),
-          Icon(Icons.email_outlined, color: Colors.white, size: 30),
-          Icon(Icons.leaderboard_outlined, color: Colors.white, size: 30),
-        ],
-        onTap: (index) {
-          if (index == 0) {
-            RegistroAtividadeDialog.mostrar(
-              context,
-              groupId: grupoId,
-              userId: GrupoController.currentUserId,
-            );
-          } else if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ChatPage(
-                  isDark: isDark,
-                  grupoNome: grupoNome,
-                  grupoId: grupoId,
-                ),
-              ),
-            );
-          } else if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const RankingSemanal(),
-              ),
-            );
-          }
-        },
-      ),
       body: SafeArea(
         child: Column(
           children: [
             // --- HEADER: BOTÃO VOLTAR E AVATAR ---
             Padding(
-              padding: const EdgeInsets.only(left: 20, right: 20, top: 15, bottom: 5),
+              padding: const EdgeInsets.all(20.0),
               child: Row(
                 children: [
-                  // Botão de Voltar no canto superior esquerdo
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.red[700],
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.black, width: 2),
-                      ),
-                      padding: const EdgeInsets.all(8),
-                      child: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  // Avatar do Grupo / Usuário
                   CircleAvatar(
                     backgroundColor: Colors.greenAccent[700],
                     radius: 22,
@@ -98,34 +42,28 @@ class GrupoPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 15),
-                  // Nome do Grupo opcional ao lado do Avatar
-                  Text(
-                    grupoNome,
-                    style: TextStyle(color: textMain, fontSize: 20, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Container(
+                      height: 45,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5A5A5A),
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: const TextField(
+                        style: TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: "",
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 15,
+                            vertical: 12,
+                          ),
+                          suffixIcon: Icon(Icons.search, color: Colors.white),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
-              ),
-            ),
-
-            // --- BARRA DE PESQUISA (Mais para baixo) ---
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
-              child: Container(
-                height: 45,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF5A5A5A),
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: const TextField(
-                  style: TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: "Pesquisar tarefas...",
-                    hintStyle: TextStyle(color: Colors.white54),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-                    suffixIcon: Icon(Icons.search, color: Colors.white),
-                  ),
-                ),
               ),
             ),
 
@@ -134,9 +72,113 @@ class GrupoPage extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 children: [
-                  _buildTarefaItem(context, "Estudo de 2hrs", "120pts", Colors.greenAccent[700]!, "P", hasProgress: true),
-                  _buildTarefaItem(context, "Atividade de redação 25min", "25pts", Colors.blueAccent, Icons.person),
-                  _buildTarefaItem(context, "Simulado do Enem 6hrs", "200exp+360pts", Colors.grey, Icons.person),
+                  _buildTarefaItem(
+                    context,
+                    "Estudo de 2hrs",
+                    "120pts",
+                    Colors.greenAccent[700]!,
+                    "P",
+                    hasProgress: true,
+                  ),
+                  _buildTarefaItem(
+                    context,
+                    "Atividade de redação 25min",
+                    "25pts",
+                    Colors.blueAccent,
+                    Icons.person,
+                  ),
+                  _buildTarefaItem(
+                    context,
+                    "Simulado do Enem 6hrs",
+                    "200exp+360pts",
+                    Colors.grey,
+                    Icons.person,
+                  ),
+                ],
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 20.0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.red[700],
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black, width: 2),
+                      ),
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.black,
+                        size: 30,
+                      ),
+                    ),
+                  ),
+
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          RegistroAtividadeDialog.mostrar(
+                            context,
+                            groupId:
+                                grupoId, // Usa o ID que veio no construtor da página
+                            userId: GrupoController
+                                .currentUserId, // Fica só assim, sem o ?? ""
+                          );
+                        },
+                        child: const Icon(
+                          Icons.add_circle_outline,
+                          color: Colors.white,
+                          size: 45,
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChatPage(
+                                isDark: isDark,
+                                grupoNome: grupoNome,
+                                grupoId: grupoId,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Icon(
+                          Icons.email_outlined,
+                          color: Colors.white,
+                          size: 45,
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RankingSemanal(),
+                            ),
+                          );
+                        },
+                        child: const Icon(
+                          Icons.leaderboard_outlined,
+                          color: Colors.red,
+                          size: 40,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -192,31 +234,24 @@ class GrupoPage extends StatelessWidget {
                         bottom: 8,
                         child: Container(height: 3, color: Colors.blue),
                       ),
-                    // Textos Centralizados
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 15),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center, // Centraliza os itens no Row
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                titulo,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 19, // Aumentado em 6 pixels (era 13)
-                                ),
-                              ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            titulo,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
                             ),
-                            const SizedBox(width: 8), // Espaço entre título e pontos
-                            Text(
-                              "- $pontos",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18, // Aumentado em 6 pixels (era 12)
-                              ),
+                          ),
+                          Text(
+                            pontos,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
                             ),
                           ],
                         ),
@@ -260,7 +295,11 @@ class GrupoPage extends StatelessWidget {
               const SizedBox(height: 5),
               Text(
                 "🏆 Recompensa: $pontos",
-                style: const TextStyle(color: Colors.green, fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.green,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 30),
               SizedBox(

@@ -86,8 +86,7 @@ class _HomePageState extends State<HomePage> {
                                       : Colors.black12,
                                   child: Icon(
                                     Icons.person,
-                                    color:
-                                        textMain, // Usa a cor definida no seu getter
+                                    color: textMain,
                                     size: 30,
                                   ),
                                 ),
@@ -100,8 +99,6 @@ class _HomePageState extends State<HomePage> {
                               indent: 15,
                               endIndent: 15,
                             ),
-
-                            // ... restante da sua lista de grupos (ListView.builder)
                           ],
                         ),
                       ),
@@ -112,8 +109,7 @@ class _HomePageState extends State<HomePage> {
                         style: TextStyle(
                           color: textMain,
                           fontSize: 28,
-                          fontFamily:
-                              'Comic Sans MS', // Substitua pela fonte exata do Figma depois
+                          fontFamily: 'Comic Sans MS',
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -126,14 +122,13 @@ class _HomePageState extends State<HomePage> {
                             right: 20,
                             bottom: 80,
                           ),
-                          itemCount: 10, // Quantidade mockada
+                          itemCount: 10, 
                           itemBuilder: (context, index) {
                             return Container(
                               margin: const EdgeInsets.only(bottom: 12),
                               child: Stack(
                                 clipBehavior: Clip.none,
                                 children: [
-                                  // Pílula Cinza
                                   Container(
                                     width: double.infinity,
                                     padding: const EdgeInsets.only(
@@ -154,7 +149,6 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                     ),
                                   ),
-                                  // Avatar sobreposto (vazando para a esquerda)
                                   Positioned(
                                     left: -15,
                                     top: 2,
@@ -198,13 +192,12 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
 
-                  // ⚙️ ENGRENAGEM E TEMA (Canto Inferior Esquerdo)
+                  // ⚙️ ENGRENAGEM E TEMA
                   Positioned(
                     bottom: 20,
                     left: 20,
                     child: GestureDetector(
-                      onTap:
-                          toggleTheme, // Usando a engrenagem para trocar o tema por enquanto!
+                      onTap: toggleTheme,
                       child: Icon(
                         Icons.settings,
                         color: isDark ? Colors.red : Colors.greenAccent,
@@ -231,7 +224,6 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  // Botão de Mais
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -254,10 +246,9 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Lista de Grupos
+                  // 📋 LISTA DE GRUPOS DINÂMICA
                   Expanded(
                     child: StreamBuilder<QuerySnapshot>(
-                      // Procura todos os grupos no Firestore
                       stream: FirebaseFirestore.instance
                           .collection('grupos')
                           .snapshots(),
@@ -275,26 +266,26 @@ class _HomePageState extends State<HomePage> {
                           itemBuilder: (context, index) {
                             var dados =
                                 grupos[index].data() as Map<String, dynamic>;
-                            String idDoGrupo = grupos[index]
-                                .id; // Este é o ID real do documento!
+                            
+                            // VARIÁVEIS REAIS DO BANCO
+                            String idDoGrupo = grupos[index].id; 
                             String nomeDoGrupo = dados['nome'] ?? "Sem nome";
 
                             return GestureDetector(
                               onTap: () {
+                                // CORREÇÃO: Passando as variáveis dinâmicas
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => GrupoPage(
                                       isDark: isDark,
-                                      grupoNome: "Grupo Estudos",
-                                      grupoId: "xtMuniqz8rcijR03NZ5d",
-                                      ),
+                                      grupoNome: nomeDoGrupo, // Antes estava fixo
+                                      grupoId: idDoGrupo,     // Antes estava fixo
                                     ),
-                                  );
+                                  ),
+                                );
                               },
-                              child: _buildCardGrupo(
-                                nomeDoGrupo,
-                              ),
+                              child: _buildCardGrupo(nomeDoGrupo),
                             );
                           },
                         );
@@ -302,8 +293,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
 
-                  // Ícone de Mensagem no final
-                  // Ícone de Mensagem no final da barra lateral
+                  // Ícone de Mensagem
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -338,16 +328,15 @@ class _HomePageState extends State<HomePage> {
       width: 55,
       height: 55,
       decoration: BoxDecoration(
-        color: const Color(0xFF5A5A5A), // Cor de fundo para combinar com o tema
+        color: const Color(0xFF5A5A5A),
         shape: BoxShape.circle,
         border: Border.all(
           color: Colors.white,
           width: 2,
-        ), // Borda branca como no seu print antigo
+        ),
       ),
       child: Center(
         child: Text(
-          // Pega a primeira letra do nome do grupo para colocar na bolinha
           nome.isNotEmpty ? nome.substring(0, 1).toUpperCase() : "?",
           style: const TextStyle(
             color: Colors.white,
