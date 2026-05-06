@@ -294,7 +294,7 @@ class _HomePageState extends State<HomePage> {
                               },
                               child: _buildCardGrupo(
                                 nomeDoGrupo,
-                              ), // Teu widget de estilo do card
+                              ),
                             );
                           },
                         );

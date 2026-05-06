@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // Import necessário
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 class PerfilPage extends StatefulWidget {
   const PerfilPage({super.key});
@@ -130,7 +130,6 @@ class _PerfilPageState extends State<PerfilPage> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: botaoVermelho),
                     onPressed: () {
-                      // Converte cor selecionada para String Hex
                       String hexString = '#${corSelecionada.value.toRadixString(16).substring(2).toUpperCase()}';
                       _firestore.collection('usuarios').doc(user!.uid).update({
                         'url_perfil': '', 
@@ -298,51 +297,38 @@ class _PerfilPageState extends State<PerfilPage> {
                   ],
                 ),
 
-                // BOTÕES EDITAR/SALVAR
+                // BOTÕES EDITAR/SALVAR CENTRALIZADOS
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: _isEditing ? null : () => setState(() => _isEditing = true),
-                        icon: const Icon(Icons.edit, size: 16),
-                        label: const Text("Editar"),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: BorderSide(color: _isEditing ? Colors.transparent : Colors.white38),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      ElevatedButton.icon(
-                        onPressed: _isEditing ? _salvarPerfil : null,
-                        icon: const Icon(Icons.save, size: 16),
-                        label: const Text("Salvar"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: botaoVermelho,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ],
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  child: Center(
+                    child: _isEditing 
+                        ? ElevatedButton.icon(
+                            onPressed: _salvarPerfil,
+                            icon: const Icon(Icons.save, size: 16),
+                            label: const Text("Salvar Perfil"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: botaoVermelho,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                            ),
+                          )
+                        : OutlinedButton.icon(
+                            onPressed: () => setState(() => _isEditing = true),
+                            icon: const Icon(Icons.edit, size: 16),
+                            label: const Text("Editar Perfil"),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white38),
+                              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                            ),
+                          ),
                   ),
                 ),
 
-                _buildSectionTitle("Atividade Semanal"),
-                _buildContainerBox(
-                  height: 150,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: List.generate(10, (index) => Container(
-                      width: 15,
-                      height: (index % 5 + 3) * 12.0,
-                      decoration: BoxDecoration(
-                        color: corDinamica,
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                    )),
-                  ),
-                ),
+                // NOVO GRÁFICO (Estilo 30 dias)
+                _buildSectionTitle("Atividade (Últimos 30 dias)"),
+                _buildGraficoMensal(corDinamica),
+                
                 const SizedBox(height: 50),
               ],
             ),
@@ -374,6 +360,99 @@ class _PerfilPageState extends State<PerfilPage> {
         border: Border.all(color: isEditing ? botaoVermelho : Colors.white10),
       ),
       child: child,
+    );
+  }
+
+  // --- NOVO WIDGET: GRÁFICO DE 30 DIAS ---
+  Widget _buildGraficoMensal(Color corBarras) {
+    // Dados fictícios (mockup) baseados na sua imagem (valores de 0.0 a 1.0 onde 1.0 é 100%)
+    final List<double> mockData = [
+      0.35, 0.10, 0.55, 0.20, 0.15, 0.60, 0.25, 0.15, 0.35, 0.60, 
+      0.10, 0.30, 0.50, 0.85, 1.00, 0.10, 0.25, 0.50, 0.15, 0.30, 
+      0.45, 0.20, 0.25, 0.60, 0.30, 0.40, 0.55, 0.10, 0.35, 0.05
+    ];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.only(top: 20, bottom: 10, left: 10, right: 10),
+      height: 250,
+      decoration: BoxDecoration(
+        color: figmaInputFill,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          // Eixo Y (Porcentagens)
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text("100%", style: TextStyle(color: Colors.white54, fontSize: 10)),
+              Text(" 75%", style: TextStyle(color: Colors.white54, fontSize: 10)),
+              Text(" 50%", style: TextStyle(color: Colors.white54, fontSize: 10)),
+              Text(" 25%", style: TextStyle(color: Colors.white54, fontSize: 10)),
+              Text("  0%", style: TextStyle(color: Colors.white54, fontSize: 10)),
+            ],
+          ),
+          const SizedBox(width: 10),
+          
+          // Área do Gráfico (Barras + Eixo X)
+          Expanded(
+            child: Column(
+              children: [
+                // Barras
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Calcula a largura de cada barra dinamicamente para caber na tela
+                      double barWidth = (constraints.maxWidth / 30) - 2; 
+                      if (barWidth < 2) barWidth = 2; // Tamanho mínimo
+
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: mockData.map((valor) {
+                          return FractionallySizedBox(
+                            heightFactor: valor, // A altura da barra é ditada por esse valor (0.0 a 1.0)
+                            child: Container(
+                              width: barWidth,
+                              decoration: BoxDecoration(
+                                color: corBarras, // A cor acompanha a identidade do perfil
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    }
+                  ),
+                ),
+                
+                // Linha divisória do Eixo X
+                Container(
+                  height: 1,
+                  color: Colors.white24,
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                ),
+                
+                // Eixo X (Dias do mês - reduzido para não encavalar os números)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Text("1", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Text("5", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Text("10", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Text("15", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Text("20", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Text("25", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Text("30", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
