@@ -47,7 +47,10 @@ class GrupoPage extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => RegistroAtividadePage(isDark: isDark),
+                builder: (context) => RegistroAtividadePage(
+                  isDark: isDark,
+                  grupoId: grupoId, // <-- O ID que a GrupoPage já tem!
+                ),
               ),
             );
           } else if (index == 1) {
