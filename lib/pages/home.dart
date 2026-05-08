@@ -25,7 +25,7 @@ class HomePage extends StatelessWidget {
       isDark ? Colors.white : Colors.black;
 
   Color _pillBg(bool isDark) =>
-      isDark ? const Color(0xFF333333) : Colors.white;
+      isDark ? const Color(0xFF333333) : const Color(0xFFB0B0B0);
 
   @override
   Widget build(BuildContext context) {
@@ -107,8 +107,7 @@ class HomePage extends StatelessWidget {
                           itemCount: 10,
                           itemBuilder: (context, index) {
                             return Container(
-                              margin:
-                                  const EdgeInsets.only(bottom: 12),
+                              margin: const EdgeInsets.only(bottom: 12),
                               child: Stack(
                                 clipBehavior: Clip.none,
                                 children: [
@@ -157,9 +156,8 @@ class HomePage extends StatelessWidget {
                       },
                       child: Icon(
                         Icons.settings,
-                        color: isDark
-                            ? Colors.red
-                            : Colors.greenAccent,
+                        color:
+                            isDark ? Colors.red : Colors.greenAccent,
                         size: 40,
                       ),
                     ),
