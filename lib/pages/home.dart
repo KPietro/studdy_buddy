@@ -5,6 +5,7 @@ import 'chats_recentes.dart';
 import 'registro_atividade.dart';
 import 'grupo_page.dart';
 import 'perfil.dart';
+import 'config_page.dart'; // <-- IMPORTANTE: Import da nova página de configurações
 import '../controllers/grupo_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chat_page.dart';
@@ -27,6 +28,7 @@ class _HomePageState extends State<HomePage> {
     isDark = widget.isDark;
   }
 
+  // Deixei essa função aqui caso queira usar em outro lugar, mas a engrenagem agora chama a página!
   void toggleTheme() async {
     ThemeController.isDark = !ThemeController.isDark;
     await ThemeController.saveTheme(ThemeController.isDark);
@@ -122,7 +124,7 @@ class _HomePageState extends State<HomePage> {
                             right: 20,
                             bottom: 80,
                           ),
-                          itemCount: 10, 
+                          itemCount: 10,
                           itemBuilder: (context, index) {
                             return Container(
                               margin: const EdgeInsets.only(bottom: 12),
@@ -192,12 +194,20 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
 
-                  // ⚙️ ENGRENAGEM E TEMA
+                  // ⚙️ ENGRENAGEM (ABRE A PÁGINA DE CONFIGURAÇÕES)
                   Positioned(
                     bottom: 20,
                     left: 20,
                     child: GestureDetector(
-                      onTap: toggleTheme,
+                      onTap: () {
+                        // NAVEGAÇÃO CORRIGIDA PARA A TELA DE CONFIGURAÇÕES
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ConfigPage(),
+                          ),
+                        );
+                      },
                       child: Icon(
                         Icons.settings,
                         color: isDark ? Colors.red : Colors.greenAccent,
@@ -266,21 +276,20 @@ class _HomePageState extends State<HomePage> {
                           itemBuilder: (context, index) {
                             var dados =
                                 grupos[index].data() as Map<String, dynamic>;
-                            
+
                             // VARIÁVEIS REAIS DO BANCO
-                            String idDoGrupo = grupos[index].id; 
+                            String idDoGrupo = grupos[index].id;
                             String nomeDoGrupo = dados['nome'] ?? "Sem nome";
 
                             return GestureDetector(
                               onTap: () {
-                                // CORREÇÃO: Passando as variáveis dinâmicas
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => GrupoPage(
                                       isDark: isDark,
-                                      grupoNome: nomeDoGrupo, // Antes estava fixo
-                                      grupoId: idDoGrupo,     // Antes estava fixo
+                                      grupoNome: nomeDoGrupo,
+                                      grupoId: idDoGrupo,
                                     ),
                                   ),
                                 );
@@ -330,10 +339,7 @@ class _HomePageState extends State<HomePage> {
       decoration: BoxDecoration(
         color: const Color(0xFF5A5A5A),
         shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.white,
-          width: 2,
-        ),
+        border: Border.all(color: Colors.white, width: 2),
       ),
       child: Center(
         child: Text(
