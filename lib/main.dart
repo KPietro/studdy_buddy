@@ -45,15 +45,34 @@ class StuddyBuddyApp extends StatelessWidget {
     return MaterialApp(
       useInheritedMediaQuery: true,
       locale: DevicePreview.locale(context),
-      builder: DevicePreview.appBuilder,
+
+      // 🔥 ALTERADO: agora aplica aumento de fonte GLOBAL
+      builder: (context, child) {
+        child = DevicePreview.appBuilder(context, child);
+
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(
+              settings.fontSize / 16,
+            ),
+          ),
+          child: child!,
+        );
+      },
+
       debugShowCheckedModeBanner: false,
       title: 'Studdy-Buddy',
 
       // 🔥 TEMA GLOBAL (MANTIDO INTACTO)
       theme: ThemeData(
-        brightness: settings.isDarkMode ? Brightness.dark : Brightness.light,
+        brightness:
+            settings.isDarkMode ? Brightness.dark : Brightness.light,
+
+        // 🔥 MANTIDO
         textTheme: TextTheme(
-          bodyMedium: TextStyle(fontSize: settings.fontSize),
+          bodyMedium: TextStyle(
+            fontSize: settings.fontSize,
+          ),
         ),
       ),
 
