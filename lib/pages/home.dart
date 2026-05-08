@@ -38,6 +38,7 @@ class HomePage extends StatelessWidget {
       body: SafeArea(
         child: Row(
           children: [
+            // 🔹 MAIN AREA
             Expanded(
               child: Stack(
                 children: [
@@ -49,6 +50,7 @@ class HomePage extends StatelessWidget {
                           children: [
                             const SizedBox(height: 50),
 
+                            // 🔹 PERFIL
                             GestureDetector(
                               onTap: () {
                                 Navigator.push(
@@ -97,6 +99,7 @@ class HomePage extends StatelessWidget {
 
                       const SizedBox(height: 20),
 
+                      // 🔹 LISTA RECENTES (mantida igual funcionalmente)
                       Expanded(
                         child: ListView.builder(
                           padding: const EdgeInsets.only(
@@ -141,6 +144,7 @@ class HomePage extends StatelessWidget {
                     ],
                   ),
 
+                  // 🔹 CONFIG
                   Positioned(
                     bottom: 20,
                     left: 20,
@@ -166,6 +170,7 @@ class HomePage extends StatelessWidget {
               ),
             ),
 
+            // 🔹 SIDEBAR GRUPOS
             Container(
               width: 70,
               decoration: BoxDecoration(
