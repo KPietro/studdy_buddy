@@ -111,24 +111,18 @@ class ConfigPage extends StatelessWidget {
               items: [
                 DropdownMenuItem(
                   value: "pt",
-                  child: Text(
-                    "Português",
-                    style: TextStyle(color: textColor),
-                  ),
+                  child: Text("Português",
+                      style: TextStyle(color: textColor)),
                 ),
                 DropdownMenuItem(
                   value: "en",
-                  child: Text(
-                    "Inglês",
-                    style: TextStyle(color: textColor),
-                  ),
+                  child: Text("Inglês",
+                      style: TextStyle(color: textColor)),
                 ),
                 DropdownMenuItem(
                   value: "es",
-                  child: Text(
-                    "Espanhol",
-                    style: TextStyle(color: textColor),
-                  ),
+                  child: Text("Espanhol",
+                      style: TextStyle(color: textColor)),
                 ),
               ],
               onChanged: (value) {
