@@ -44,10 +44,11 @@ class GrupoPage extends StatelessWidget {
         ],
         onTap: (index) {
           if (index == 0) {
-            RegistroAtividadeDialog.mostrar(
+            Navigator.push(
               context,
-              groupId: grupoId,
-              userId: GrupoController.currentUserId,
+              MaterialPageRoute(
+                builder: (context) => RegistroAtividadePage(isDark: isDark),
+              ),
             );
           } else if (index == 1) {
             Navigator.push(
