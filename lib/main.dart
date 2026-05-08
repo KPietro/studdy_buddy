@@ -58,12 +58,13 @@ class StuddyBuddyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Studdy-Buddy',
 
-      // 🔥 CORREÇÃO REAL DO TEMA GLOBAL
+      // 🔥 TEMA GLOBAL CORRIGIDO
       themeMode: settings.isDarkMode
           ? ThemeMode.dark
           : ThemeMode.light,
 
-      theme: ThemeData.light(),
+      // 🔥 GARANTE QUE O APP NASCE ESCURO SEM FLASH
+      theme: ThemeData.dark(),
       darkTheme: ThemeData.dark(),
 
       home: const AuthCheck(),
