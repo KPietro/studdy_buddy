@@ -3,14 +3,12 @@ import 'package:flutter/foundation.dart';
 import 'package:device_preview/device_preview.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-// 🔥 NOVOS IMPORTS
 import 'package:provider/provider.dart';
 import 'controllers/settings_controller.dart';
 import 'controllers/theme_controller.dart';
 
-// Importando a tela de Login e o novo AuthCheck
 import 'pages/login.dart';
-import 'pages/auth_check.dart'; // 🔥 NOVO: Import do arquivo que criamos!
+import 'pages/auth_check.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +17,6 @@ void main() async {
 
   await ThemeController.loadTheme();
 
-  // 🔥 NOVO: carregar configurações (MANTIDO INTACTO)
   final settings = SettingsController();
   await settings.loadSettings();
 
@@ -39,14 +36,12 @@ class StuddyBuddyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🔥 NOVO (MANTIDO INTACTO)
     final settings = Provider.of<SettingsController>(context);
 
     return MaterialApp(
       useInheritedMediaQuery: true,
       locale: DevicePreview.locale(context),
 
-      // 🔥 ALTERADO: agora aplica aumento de fonte GLOBAL
       builder: (context, child) {
         child = DevicePreview.appBuilder(context, child);
 
@@ -63,21 +58,14 @@ class StuddyBuddyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Studdy-Buddy',
 
-      // 🔥 TEMA GLOBAL (MANTIDO INTACTO)
-      theme: ThemeData(
-        brightness:
-            settings.isDarkMode ? Brightness.dark : Brightness.light,
+      // 🔥 CORREÇÃO REAL DO TEMA GLOBAL
+      themeMode: settings.isDarkMode
+          ? ThemeMode.dark
+          : ThemeMode.light,
 
-        // 🔥 MANTIDO
-        textTheme: TextTheme(
-          bodyMedium: TextStyle(
-            fontSize: settings.fontSize,
-          ),
-        ),
-      ),
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
 
-      // 🔥 A MÁGICA ACONTECE AQUI:
-      // Em vez de ir pro LoginPage, ele vai pro AuthCheck ver se tem alguém logado!
       home: const AuthCheck(),
     );
   }
