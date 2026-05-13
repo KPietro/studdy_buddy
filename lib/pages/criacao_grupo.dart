@@ -39,18 +39,18 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
       final user = FirebaseAuth.instance.currentUser;
 
       // 1. Cria o documento do Grupo na coleção 'grupos'
-      DocumentReference novoGrupoRef = await FirebaseFirestore.instance
-          .collection('grupos')
-          .add({
-            'nome': nomeController.text.trim(),
-            'pontos_minuto':
-                int.tryParse(pontosMinutoController.text.trim()) ?? 1,
-            'meta_maior': int.tryParse(metaMaiorController.text.trim()) ?? 0,
-            'titulo_semanal': tituloSemanalController.text.trim(),
-            'titulo_total': tituloTotalController.text.trim(),
-            'criador_id': user?.uid,
-            'data_criacao': FieldValue.serverTimestamp(),
-          });
+      DocumentReference
+      novoGrupoRef = await FirebaseFirestore.instance.collection('grupos').add({
+        'nome': nomeController.text.trim(),
+        'pontos_minuto': int.tryParse(pontosMinutoController.text.trim()) ?? 1,
+        'meta_maior': int.tryParse(metaMaiorController.text.trim()) ?? 0,
+        'titulo_semanal': tituloSemanalController.text.trim(),
+        'titulo_total': tituloTotalController.text.trim(),
+        'criador_id': user?.uid,
+        'data_criacao': FieldValue.serverTimestamp(),
+        // A MÁGICA AQUI: Garante que o criador já comece na lista de membros do grupo!
+        'membros_ids': [user?.uid],
+      });
 
       // 2. Adiciona o utilizador atual como o primeiro membro na subcoleção 'membros'
       if (user != null) {
