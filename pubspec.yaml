@@ -42,6 +42,7 @@ dependencies:
   firebase_storage: 13.3.0
   sqflite: ^2.4.2+1
   path_provider: ^2.1.5
+  cached_network_image: ^3.4.1
   
   # Adicione estas linhas quando for configurar o Firebase:
   # firebase_core: ^latest_version
