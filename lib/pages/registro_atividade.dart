@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../controllers/imagem_controller.dart'; // Importe o controlador que criamos para o Cloudinary
+import '../controllers/imagem_controller.dart';
 
 class RegistroAtividadePage extends StatefulWidget {
   final bool isDark;
-  final String grupoId; // Precisamos do ID do grupo para salvar no lugar certo!
+  final String grupoId;
 
   const RegistroAtividadePage({
     super.key,
@@ -32,14 +32,14 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
   final _minutosComumCtrl = TextEditingController();
   final _descComumCtrl = TextEditingController();
   String? urlImagemComum;
-  bool isUploadingComum = false; // <-- Controle de loading da imagem
+  bool isUploadingComum = false;
 
   // Controladores para a Aba Maior
   final _acaoMaiorCtrl = TextEditingController();
   final _minutosMaiorCtrl = TextEditingController();
   final _descMaiorCtrl = TextEditingController();
   String? urlImagemMaior;
-  bool isUploadingMaior = false; // <-- Controle de loading da imagem
+  bool isUploadingMaior = false;
 
   @override
   void dispose() {
@@ -52,19 +52,16 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     super.dispose();
   }
 
-  // --- LÓGICA DE BANCO DE DADOS E UPLOAD ---
+  // --- LÓGICA DE UPLOAD (MANTIDA DA SUA VERSÃO) ---
 
   Future<void> _escolherImagem(String tipo) async {
-    // Liga o "Carregando"
     setState(() {
       if (tipo == "Comum") isUploadingComum = true;
       if (tipo == "Maior") isUploadingMaior = true;
     });
 
-    // Tenta subir a imagem
     String? link = await ImagemController.escolherESubirImagem();
 
-    // Desliga o "Carregando" e salva o link
     setState(() {
       if (tipo == "Comum") {
         if (link != null) urlImagemComum = link;
@@ -76,7 +73,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
       }
     });
 
-    // Avisa o usuário
     if (mounted) {
       if (link != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -93,80 +89,149 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     }
   }
 
+  // --- LÓGICA DE SALVAR (FUNDIDA COM A DO BRAYAN) ---
+
   Future<void> _salvarAtividade(String tipoTarefa) async {
     if (isSaving) return;
+
+    // Coleta os dados dependendo da aba que você está usando
+    String acao = tipoTarefa == "Comum"
+        ? _acaoComumCtrl.text
+        : _acaoMaiorCtrl.text;
+    String desc = tipoTarefa == "Comum"
+        ? _descComumCtrl.text
+        : _descMaiorCtrl.text;
+    String minStr = tipoTarefa == "Comum"
+        ? _minutosComumCtrl.text
+        : _minutosMaiorCtrl.text;
+    String? urlImagem = tipoTarefa == "Comum" ? urlImagemComum : urlImagemMaior;
+
+    // Validações
+    if (acao.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Preencha a ação/título da atividade!")),
+      );
+      return;
+    }
+
+    if (tipoTarefa == "Tarefa Maior" && urlImagem == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("A foto é obrigatória para a Tarefa Maior!"),
+        ),
+      );
+      return;
+    }
+
     setState(() => isSaving = true);
 
     try {
-      // Coleta os dados dependendo da aba
-      String acao = tipoTarefa == "Comum"
-          ? _acaoComumCtrl.text
-          : _acaoMaiorCtrl.text;
-      String desc = tipoTarefa == "Comum"
-          ? _descComumCtrl.text
-          : _descMaiorCtrl.text;
-      String minStr = tipoTarefa == "Comum"
-          ? _minutosComumCtrl.text
-          : _minutosMaiorCtrl.text;
-      String? urlImagem = tipoTarefa == "Comum"
-          ? urlImagemComum
-          : urlImagemMaior;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("Usuário não logado.");
 
-      // Se a aba maior não tiver foto, bloqueia
-      if (tipoTarefa == "Tarefa Maior" && urlImagem == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("A foto é obrigatória para a Tarefa Maior!"),
-          ),
-        );
-        setState(() => isSaving = false);
-        return;
-      }
-
-      // Converte minutos (se usou timer, coloca 30 min provisório para não quebrar)
+      // Converte minutos (se usou timer, coloca 30 min provisório para não quebrar a lógica)
       num minutos =
           num.tryParse(minStr) ?? (usarTimer && tipoTarefa == "Comum" ? 30 : 0);
-      String userId =
-          FirebaseAuth.instance.currentUser?.uid ?? "usuario_desconhecido";
 
-      // Salva no Firestore EXATAMENTE como na sua print
-      await FirebaseFirestore.instance
+      // 1. LER AS REGRAS DO GRUPO (quantos pontos vale cada minuto) - Lógica do Brayan
+      DocumentSnapshot grupoDoc = await FirebaseFirestore.instance
+          .collection('grupos')
+          .doc(widget.grupoId)
+          .get();
+      var dadosGrupo = grupoDoc.data() as Map<String, dynamic>?;
+
+      int ptsPorMinuto = 1;
+      int metaMaiorBonus = 0;
+      if (dadosGrupo != null) {
+        ptsPorMinuto =
+            (dadosGrupo['pontos_por_minuto'] ??
+                    dadosGrupo['pontos_minuto'] ??
+                    1)
+                .toInt();
+        metaMaiorBonus =
+            (dadosGrupo['pontos_meta_maior'] ?? dadosGrupo['meta_maior'] ?? 0)
+                .toInt();
+      }
+
+      // 2. CÁLCULO DOS PONTOS - Lógica do Brayan
+      int pontosGanhos = (minutos.toInt()) * ptsPorMinuto;
+      int incrementoAtividadeMaior = 0;
+
+      if (tipoTarefa == "Tarefa Maior") {
+        pontosGanhos += metaMaiorBonus;
+        incrementoAtividadeMaior = 1;
+      }
+
+      // 3. USANDO O BATCH (TUDO OU NADA) - Lógica do Brayan
+      final batch = FirebaseFirestore.instance.batch();
+
+      // A. Prepara a gravação da Tarefa
+      var tarefaRef = FirebaseFirestore.instance
           .collection('grupos')
           .doc(widget.grupoId)
           .collection('tarefas')
-          .add({
-            'acao': acao,
-            'descricao': desc,
-            'minutos': minutos,
-            'tipotarefa': tipoTarefa,
-            'urlimagem': urlImagem ?? "",
-            'criador_id': userId,
-            'data_criacao': FieldValue.serverTimestamp(),
-          });
+          .doc(); // Gera o ID único da tarefa
+
+      batch.set(tarefaRef, {
+        'acao': acao,
+        'descricao': desc,
+        'minutos': minutos,
+        'tipotarefa': tipoTarefa, // Salva se é Comum ou Tarefa Maior
+        'urlimagem': urlImagem ?? "", // Imagem da sua lógica!
+        'criador_id': user.uid,
+        'data_criacao': FieldValue.serverTimestamp(),
+      });
+
+      // B. Prepara a atualização dos Pontos do Membro
+      var membroRef = FirebaseFirestore.instance
+          .collection('grupos')
+          .doc(widget.grupoId)
+          .collection('membros')
+          .doc(user.uid);
+
+      batch.update(membroRef, {
+        'pontosSemanais': FieldValue.increment(pontosGanhos),
+        'pontosTotais': FieldValue.increment(pontosGanhos),
+        'atividadesMaioresSemanais': FieldValue.increment(
+          incrementoAtividadeMaior,
+        ),
+        'atividadesMaioresTotais': FieldValue.increment(
+          incrementoAtividadeMaior,
+        ),
+      });
+
+      // C. Executa as duas operações juntas instantaneamente
+      await batch.commit();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Atividade enviada com sucesso!")),
+          const SnackBar(
+            content: Text("Atividade enviada e pontos computados!"),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Erro ao salvar: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Erro ao salvar: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => isSaving = false);
     }
   }
 
-  // --- UI ORIGINAL ---
+  // --- UI (MANTIDA EXATAMENTE A SUA) ---
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2, // Número de "Sub Abas"
+      length: 2,
       child: Scaffold(
         backgroundColor: bgMain,
         appBar: AppBar(
@@ -288,7 +353,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
                 ? "Adicionar Foto / Print (Opcional)"
                 : "Imagem Anexada!",
             urlImagemComum == null ? Icons.add_a_photo : Icons.check_circle,
-            isLoading: isUploadingComum, // Passando o estado de carregamento!
+            isLoading: isUploadingComum,
             onPressed: () => _escolherImagem("Comum"),
           ),
           const SizedBox(height: 10),
@@ -352,7 +417,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
                 : "Imagem Anexada!",
             urlImagemMaior == null ? Icons.camera_alt : Icons.check_circle,
             obrigatorio: urlImagemMaior == null,
-            isLoading: isUploadingMaior, // Passando o estado de carregamento!
+            isLoading: isUploadingMaior,
             onPressed: () => _escolherImagem("Maior"),
           ),
 
@@ -371,7 +436,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     );
   }
 
-  // --- Widgets Auxiliares Atualizados ---
+  // --- Widgets Auxiliares ---
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, top: 15),
@@ -420,7 +485,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     String texto,
     IconData icone, {
     bool obrigatorio = false,
-    bool isLoading = false, // <-- Novo parâmetro para o loading!
+    bool isLoading = false,
     required VoidCallback onPressed,
   }) {
     return OutlinedButton.icon(
