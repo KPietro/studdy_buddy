@@ -29,8 +29,11 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
   String tipoTarefaSelecionada = 'Comum';
   bool isLoading = false;
 
+  // --- FUNÇÃO COM WRITEBATCH (Atualiza Tarefa e Membro juntos) ---
   Future<void> _salvarAtividade() async {
-    if (acaoController.text.isEmpty || minutosController.text.isEmpty) {
+    // Validação Básica
+    if (acaoController.text.trim().isEmpty ||
+        minutosController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Preencha a ação e os minutos!")),
       );
@@ -41,7 +44,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception("Usuário não logado");
+      if (user == null) throw Exception("Usuário não logado.");
 
       int minutos = int.tryParse(minutosController.text.trim()) ?? 0;
 
@@ -52,59 +55,73 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
           .get();
       var dadosGrupo = grupoDoc.data() as Map<String, dynamic>?;
 
-      int ptsPorMinuto = dadosGrupo?['pontos_minuto'] ?? 1;
-      int metaMaiorBonus = dadosGrupo?['meta_maior'] ?? 0;
+      // Usando .toInt() por segurança, caso o banco retorne double
+      int ptsPorMinuto = 1;
+      int metaMaiorBonus = 0;
+      if (dadosGrupo != null) {
+        ptsPorMinuto = (dadosGrupo['pontos_minuto'] ?? 1).toInt();
+        metaMaiorBonus = (dadosGrupo['meta_maior'] ?? 0).toInt();
+      }
 
       // 2. CÁLCULO DOS PONTOS
       int pontosGanhos = minutos * ptsPorMinuto;
       int incrementoAtividadeMaior = 0;
 
-      // Se for uma Meta Maior, ganha os pontos extras e conta +1 nas estatísticas de Atividade Maior
+      // Se for uma Meta Maior, ganha os pontos extras e conta +1 na estatística
       if (tipoTarefaSelecionada == 'Meta Maior') {
         pontosGanhos += metaMaiorBonus;
         incrementoAtividadeMaior = 1;
       }
 
-      // 3. SALVAR A TAREFA NA SUBCOLEÇÃO
-      await FirebaseFirestore.instance
+      // 3. USANDO O BATCH (TUDO OU NADA)
+      final batch = FirebaseFirestore.instance.batch();
+
+      // A. Prepara a gravação da Tarefa
+      var tarefaRef = FirebaseFirestore.instance
           .collection('grupos')
           .doc(widget.grupoId)
           .collection('tarefas')
-          .add({
-            'acao': acaoController.text.trim(),
-            'descricao': descricaoController.text.trim(),
-            'minutos': minutos,
-            'tipotarefa': tipoTarefaSelecionada,
-            'criador_id': user.uid,
-            'data_criacao': FieldValue.serverTimestamp(),
-            'urlimagem': "", // Pode implementar upload de imagem depois
-          });
+          .doc(); // Gera um ID único para a nova tarefa
 
-      // 4. ATUALIZAR O MEMBRO (INCREMENTANDO OS PONTOS E A QTD DE TAREFAS)
-      await FirebaseFirestore.instance
+      batch.set(tarefaRef, {
+        'acao': acaoController.text.trim(),
+        'descricao': descricaoController.text.trim(),
+        'minutos': minutos,
+        'tipotarefa': tipoTarefaSelecionada,
+        'criador_id': user.uid,
+        'data_criacao': FieldValue.serverTimestamp(),
+        'urlimagem': "", // Espaço para futura implementação de imagem
+      });
+
+      // B. Prepara a atualização dos Pontos do Membro
+      var membroRef = FirebaseFirestore.instance
           .collection('grupos')
           .doc(widget.grupoId)
           .collection('membros')
-          .doc(user.uid)
-          .update({
-            'pontosSemanais': FieldValue.increment(pontosGanhos),
-            'pontosTotais': FieldValue.increment(pontosGanhos),
-            'atividadesMaioresSemanais': FieldValue.increment(
-              incrementoAtividadeMaior,
-            ),
-            'atividadesMaioresTotais': FieldValue.increment(
-              incrementoAtividadeMaior,
-            ),
-          });
+          .doc(user.uid);
+
+      batch.update(membroRef, {
+        'pontosSemanais': FieldValue.increment(pontosGanhos),
+        'pontosTotais': FieldValue.increment(pontosGanhos),
+        'atividadesMaioresSemanais': FieldValue.increment(
+          incrementoAtividadeMaior,
+        ),
+        'atividadesMaioresTotais': FieldValue.increment(
+          incrementoAtividadeMaior,
+        ),
+      });
+
+      // C. Executa as duas operações juntas instantaneamente
+      await batch.commit();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Atividade registrada! Pontos computados."),
+            content: Text("Atividade salva e pontos computados!"),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context); // Volta para o GrupoPage
       }
     } catch (e) {
       if (mounted) {
@@ -173,8 +190,9 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
                     ),
                   ],
                   onChanged: (val) {
-                    if (val != null)
+                    if (val != null) {
                       setState(() => tipoTarefaSelecionada = val);
+                    }
                   },
                 ),
               ),
