@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Para o cache da imagem da internet
+import '../controllers/imagem_controller.dart'; // Import do seu uploader do Cloudinary
 
 class PerfilPage extends StatefulWidget {
   const PerfilPage({super.key});
@@ -17,10 +19,51 @@ class _PerfilPageState extends State<PerfilPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   bool _isEditing = false;
+  bool _isUploadingAvatar = false; // Controle de loading da foto de perfil
 
   final Color figmaVinhoEscuro = const Color(0xFF1D0000);
   final Color figmaInputFill = const Color(0xFF2D0505);
   final Color botaoVermelho = const Color(0xFFDA2B2B);
+
+  // --- Função para subir a foto de perfil pro Cloudinary ---
+  Future<void> _escolherFotoGaleria() async {
+    setState(() => _isUploadingAvatar = true);
+
+    String? link = await ImagemController.escolherESubirImagem();
+
+    if (link != null) {
+      await _firestore.collection('usuarios').doc(user!.uid).update({
+        'url_perfil': link,
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Foto de perfil atualizada com sucesso!"),
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Cancelado ou erro de conexão."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+
+    if (mounted) setState(() => _isUploadingAvatar = false);
+  }
+
+  // --- Mágica para descobrir se é Avatar do App ou Link da Nuvem ---
+  ImageProvider? _obterProvedorDeImagem(String? url) {
+    if (url == null || url.isEmpty) return null;
+    if (url.startsWith('http')) {
+      return CachedNetworkImageProvider(url); // Se for do Cloudinary
+    }
+    return AssetImage(url); // Se for o Avatar padrão
+  }
 
   Color _hexToColor(String hexCode) {
     try {
@@ -74,16 +117,46 @@ class _PerfilPageState extends State<PerfilPage> {
                       ),
                     ),
                     const SizedBox(height: 30),
-                    _buildModalLabel("Escolha um Avatar"),
+                    _buildModalLabel("Escolha um Avatar ou Foto"),
                     const SizedBox(height: 15),
                     SizedBox(
                       height: 90,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        itemCount: 4,
+                        itemCount: 5, // 4 Avatares + 1 Botão de Galeria
                         itemBuilder: (context, index) {
-                          String path =
-                              "assets/Avatares/Avatar${index + 1}.png";
+                          // O primeiro item (index 0) é o botão de subir foto da galeria!
+                          if (index == 0) {
+                            return GestureDetector(
+                              onTap: () async {
+                                Navigator.pop(context); // Fecha o modal
+                                await _escolherFotoGaleria(); // Abre a galeria
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(right: 15),
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white10,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: const CircleAvatar(
+                                  radius: 38,
+                                  backgroundColor: Color(0xFF3A0A0A),
+                                  child: Icon(
+                                    Icons.add_photo_alternate,
+                                    color: Colors.white70,
+                                    size: 35,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+
+                          // Os outros são os avatares (índice 1 a 4)
+                          String path = "assets/Avatares/Avatar$index.png";
                           return GestureDetector(
                             onTap: () {
                               _firestore
@@ -126,15 +199,13 @@ class _PerfilPageState extends State<PerfilPage> {
                         onColorChanged: (Color color) => corSelecionada = color,
                         pickerAreaHeightPercent: 0.7,
                         enableAlpha: false,
-                        displayThumbColor:
-                            false, // Remove o círculo de cor flutuante
+                        displayThumbColor: false,
                         showLabel: true,
                         paletteType: PaletteType.hsvWithHue,
                         pickerAreaBorderRadius: const BorderRadius.all(
                           Radius.circular(15),
                         ),
-                        hexInputBar:
-                            true, // Adiciona barra de HEX para facilitar
+                        hexInputBar: true,
                       ),
                     ),
                     const SizedBox(height: 30),
@@ -171,13 +242,10 @@ class _PerfilPageState extends State<PerfilPage> {
                               _firestore
                                   .collection('usuarios')
                                   .doc(user!.uid)
-                                  .update({
-                                    'url_perfil': '',
-                                    'cor_hex': hexString,
-                                  });
+                                  .update({'cor_hex': hexString});
                               Navigator.pop(context);
                             },
-                            child: const Text("Salvar Estilo"),
+                            child: const Text("Salvar Cor"),
                           ),
                         ),
                       ],
@@ -211,8 +279,9 @@ class _PerfilPageState extends State<PerfilPage> {
       body: StreamBuilder<DocumentSnapshot>(
         stream: _firestore.collection('usuarios').doc(user!.uid).snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
           var dados = snapshot.data!.data() as Map<String, dynamic>;
           String? fotoUrl = dados['url_perfil'];
           String corHex = dados['cor_hex'] ?? "#444444";
@@ -227,14 +296,13 @@ class _PerfilPageState extends State<PerfilPage> {
           return SingleChildScrollView(
             child: Column(
               children: [
-                // Ajuste no Stack para clique total
                 SizedBox(
-                  height:
-                      260, // Aumentei a altura do container pai para não cortar o clique
+                  height: 260,
                   child: Stack(
                     alignment: Alignment.center,
                     clipBehavior: Clip.none,
                     children: [
+                      // Banner de fundo
                       Positioned(
                         top: 0,
                         left: 0,
@@ -245,7 +313,7 @@ class _PerfilPageState extends State<PerfilPage> {
                             color: corDinamica,
                             image: (fotoUrl != null && fotoUrl.isNotEmpty)
                                 ? DecorationImage(
-                                    image: AssetImage(fotoUrl),
+                                    image: _obterProvedorDeImagem(fotoUrl)!,
                                     fit: BoxFit.cover,
                                     opacity: 0.3,
                                   )
@@ -267,28 +335,30 @@ class _PerfilPageState extends State<PerfilPage> {
                           ),
                         ),
                       ),
-                      // AQUI ESTÁ A MUDANÇA: GestureDetector envolvendo uma área maior
+
+                      // Avatar Flutuante Clicável
                       Positioned(
                         bottom: 0,
                         child: InkWell(
-                          // Usando InkWell para feedback visual de clique
                           onTap: () => _mostrarSeletorCustomizado(corDinamica),
                           borderRadius: BorderRadius.circular(60),
                           child: Container(
-                            padding: const EdgeInsets.all(
-                              4,
-                            ), // Área de respiro para o clique
+                            padding: const EdgeInsets.all(4),
                             child: CircleAvatar(
                               radius: 55,
                               backgroundColor: Colors.white,
                               child: CircleAvatar(
                                 radius: 52,
                                 backgroundColor: corDinamica,
-                                backgroundImage:
-                                    (fotoUrl != null && fotoUrl.isNotEmpty)
-                                    ? AssetImage(fotoUrl)
-                                    : null,
-                                child: (fotoUrl == null || fotoUrl.isEmpty)
+                                backgroundImage: _obterProvedorDeImagem(
+                                  fotoUrl,
+                                ),
+                                child: _isUploadingAvatar
+                                    // Animação de carregando enquanto sobe a foto!
+                                    ? const CircularProgressIndicator(
+                                        color: Colors.white,
+                                      )
+                                    : (fotoUrl == null || fotoUrl.isEmpty)
                                     ? Text(
                                         nome.isNotEmpty
                                             ? nome[0].toUpperCase()
