@@ -32,12 +32,14 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
   final _minutosComumCtrl = TextEditingController();
   final _descComumCtrl = TextEditingController();
   String? urlImagemComum;
+  bool isUploadingComum = false; // <-- Controle de loading da imagem
 
   // Controladores para a Aba Maior
   final _acaoMaiorCtrl = TextEditingController();
   final _minutosMaiorCtrl = TextEditingController();
   final _descMaiorCtrl = TextEditingController();
   String? urlImagemMaior;
+  bool isUploadingMaior = false; // <-- Controle de loading da imagem
 
   @override
   void dispose() {
@@ -53,15 +55,39 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
   // --- LÓGICA DE BANCO DE DADOS E UPLOAD ---
 
   Future<void> _escolherImagem(String tipo) async {
+    // Liga o "Carregando"
+    setState(() {
+      if (tipo == "Comum") isUploadingComum = true;
+      if (tipo == "Maior") isUploadingMaior = true;
+    });
+
+    // Tenta subir a imagem
     String? link = await ImagemController.escolherESubirImagem();
-    if (link != null) {
-      setState(() {
-        if (tipo == "Comum") urlImagemComum = link;
-        if (tipo == "Maior") urlImagemMaior = link;
-      });
-      if (mounted) {
+
+    // Desliga o "Carregando" e salva o link
+    setState(() {
+      if (tipo == "Comum") {
+        if (link != null) urlImagemComum = link;
+        isUploadingComum = false;
+      }
+      if (tipo == "Maior") {
+        if (link != null) urlImagemMaior = link;
+        isUploadingMaior = false;
+      }
+    });
+
+    // Avisa o usuário
+    if (mounted) {
+      if (link != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Imagem carregada com sucesso!")),
+          const SnackBar(content: Text("Imagem anexada com sucesso!")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Cancelado ou erro de conexão."),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -262,6 +288,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
                 ? "Adicionar Foto / Print (Opcional)"
                 : "Imagem Anexada!",
             urlImagemComum == null ? Icons.add_a_photo : Icons.check_circle,
+            isLoading: isUploadingComum, // Passando o estado de carregamento!
             onPressed: () => _escolherImagem("Comum"),
           ),
           const SizedBox(height: 10),
@@ -325,6 +352,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
                 : "Imagem Anexada!",
             urlImagemMaior == null ? Icons.camera_alt : Icons.check_circle,
             obrigatorio: urlImagemMaior == null,
+            isLoading: isUploadingMaior, // Passando o estado de carregamento!
             onPressed: () => _escolherImagem("Maior"),
           ),
 
@@ -343,7 +371,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     );
   }
 
-  // --- Widgets Auxiliares Atualizados com Controllers e OnPressed ---
+  // --- Widgets Auxiliares Atualizados ---
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, top: 15),
@@ -392,17 +420,30 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     String texto,
     IconData icone, {
     bool obrigatorio = false,
+    bool isLoading = false, // <-- Novo parâmetro para o loading!
     required VoidCallback onPressed,
   }) {
     return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(
-        icone,
-        color: obrigatorio
-            ? Colors.amber
-            : (widget.isDark ? Colors.red : Colors.green),
+      onPressed: isLoading ? null : onPressed,
+      icon: isLoading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : Icon(
+              icone,
+              color: obrigatorio
+                  ? Colors.amber
+                  : (widget.isDark ? Colors.red : Colors.green),
+            ),
+      label: Text(
+        isLoading ? "Enviando para a nuvem..." : texto,
+        style: TextStyle(color: textMain, fontSize: 12),
       ),
-      label: Text(texto, style: TextStyle(color: textMain, fontSize: 12)),
       style: OutlinedButton.styleFrom(
         side: BorderSide(color: obrigatorio ? Colors.amber : Colors.grey),
         padding: const EdgeInsets.all(15),

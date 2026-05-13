@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../controllers/theme_controller.dart';
 import 'criacao_grupo.dart';
 import 'chats_recentes.dart';
@@ -21,6 +22,12 @@ class _HomePageState extends State<HomePage> {
   late bool isDark;
   String queryPesquisa = ""; // Variável para controlar a pesquisa
   final user = FirebaseAuth.instance.currentUser; // Usuário atual
+
+  ImageProvider? _obterImagem(String? url) {
+    if (url == null || url.isEmpty) return null;
+    if (url.startsWith('http')) return CachedNetworkImageProvider(url);
+    return AssetImage(url);
+  }
 
   @override
   void initState() {
@@ -114,34 +121,66 @@ class _HomePageState extends State<HomePage> {
                         child: Row(
                           children: [
                             const SizedBox(height: 50),
-                            // ÍCONE DE PERFIL
-                            GestureDetector(
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const PerfilPage(),
-                                ),
-                              ),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white24,
-                                    width: 2,
+
+                            // ÍCONE DE PERFIL DINÂMICO
+                            StreamBuilder<DocumentSnapshot>(
+                              stream: FirebaseFirestore.instance
+                                  .collection('usuarios')
+                                  .doc(user?.uid)
+                                  .snapshots(),
+                              builder: (context, snapshot) {
+                                String? fotoUrl;
+                                String inicial = "P";
+
+                                if (snapshot.hasData && snapshot.data!.exists) {
+                                  var dados =
+                                      snapshot.data!.data()
+                                          as Map<String, dynamic>;
+                                  fotoUrl = dados['url_perfil'];
+                                  String nome =
+                                      dados['nome_exibicao'] ??
+                                      dados['nome'] ??
+                                      "";
+                                  if (nome.isNotEmpty)
+                                    inicial = nome[0].toUpperCase();
+                                }
+
+                                return GestureDetector(
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const PerfilPage(),
+                                    ),
                                   ),
-                                ),
-                                child: CircleAvatar(
-                                  radius: 25,
-                                  backgroundColor: isDark
-                                      ? Colors.white10
-                                      : Colors.black12,
-                                  child: Icon(
-                                    Icons.person,
-                                    color: textMain,
-                                    size: 30,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white24,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: 25,
+                                      backgroundColor: isDark
+                                          ? Colors.white10
+                                          : Colors.black12,
+                                      backgroundImage: _obterImagem(fotoUrl),
+                                      child:
+                                          (fotoUrl == null || fotoUrl.isEmpty)
+                                          ? Text(
+                                              inicial,
+                                              style: TextStyle(
+                                                color: textMain,
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
                           ],
                         ),
