@@ -4,7 +4,8 @@ import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'ranking_semanal.dart';
 
 class RankingTotal extends StatefulWidget {
-  const RankingTotal({super.key});
+  final String grupoId; // Recebe o ID do grupo
+  const RankingTotal({super.key, required this.grupoId});
 
   @override
   State<RankingTotal> createState() => _RankingTotalState();
@@ -28,13 +29,18 @@ class _RankingTotalState extends State<RankingTotal> {
       backgroundColor: isDark ? bgEscuro : bgClaro,
       body: SafeArea(
         child: StreamBuilder<QuerySnapshot>(
+          // Busca os membros do grupo aberto, ordenados pela pontuação TOTAL
           stream: FirebaseFirestore.instance
               .collection('grupos')
-              .doc('G1')
+              .doc(widget.grupoId)
               .collection('membros')
-              .orderBy('pontosTotais', descending: true) // ORDENA PELO TOTAL
+              .orderBy('pontosTotais', descending: true)
               .snapshots(),
           builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
             final List<Map<String, dynamic>> jogadores = [];
 
             if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
@@ -43,9 +49,10 @@ class _RankingTotalState extends State<RankingTotal> {
                 jogadores.add({
                   "posicao": i + 1,
                   "nome": docs[i]['nome'] ?? "Sem Nome",
-                  "pontos": docs[i]['pontosTotais'] ?? 0, // PUXA O TOTAL
-                  "atividades":
-                      docs[i]['atividadesMaioresTotais'] ?? 0, // PUXA O TOTAL
+                  // Pegando a pontuação TOTAL do banco
+                  "pontos": docs[i]['pontosTotais'] ?? 0,
+                  // Pegando as metas maiores TOTAIS do banco
+                  "atividades": docs[i]['atividadesMaioresTotais'] ?? 0,
                   "fotoPerfil": docs[i]['fotoPerfil'],
                 });
               }
@@ -53,18 +60,13 @@ class _RankingTotalState extends State<RankingTotal> {
 
             return Column(
               children: [
-                _buildHeader(isDark), // Cabeçalho fixo no topo
+                _buildHeader(isDark),
                 const SizedBox(height: 20),
-
-                if (snapshot.connectionState == ConnectionState.waiting)
-                  const Expanded(
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (jogadores.isEmpty)
+                if (jogadores.isEmpty)
                   Expanded(
                     child: Center(
                       child: Text(
-                        'Nenhum jogador encontrado no G1.',
+                        'Nenhum membro encontrado.',
                         style: TextStyle(
                           color: isDark ? Colors.white : Colors.black,
                         ),
@@ -249,6 +251,7 @@ class _RankingTotalState extends State<RankingTotal> {
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                 ),
               ),
+
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -304,22 +307,22 @@ class _RankingTotalState extends State<RankingTotal> {
       ],
       onTap: (index) {
         if (index == 0) {
-          Future.delayed(const Duration(milliseconds: 300), () {
-            Navigator.pushReplacement(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation1, animation2) =>
-                    const RankingSemanal(),
-                transitionDuration: Duration.zero,
-              ),
-            );
-          });
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              // Passando o ID de volta pro Semanal!
+              pageBuilder: (context, animation1, animation2) =>
+                  RankingSemanal(grupoId: widget.grupoId),
+              transitionDuration: Duration.zero,
+            ),
+          );
         }
       },
     );
   }
 }
 
+// O PillarPainter aqui é exatamente igual ao do arquivo semanal
 class PillarPainter extends CustomPainter {
   final double altura;
   final Color colorFront;
@@ -336,7 +339,6 @@ class PillarPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (altura <= 0.1) return;
-
     const double W = 50.0;
     const double D = 15.0;
     const double angle = 0.5;
@@ -351,12 +353,10 @@ class PillarPainter extends CustomPainter {
     final paintTop = Paint()
       ..color = colorTop
       ..style = PaintingStyle.fill;
-
     final paintBorder = Paint()
       ..color = Colors.black
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
-
     final base = altura + Dy;
 
     final pathFront = Path()
@@ -381,14 +381,12 @@ class PillarPainter extends CustomPainter {
     canvas.drawPath(pathFront, paintFront);
     canvas.drawPath(pathSide, paintSide);
     canvas.drawPath(pathTop, paintTop);
-
     canvas.drawPath(pathFront, paintBorder);
     canvas.drawPath(pathSide, paintBorder);
     canvas.drawPath(pathTop, paintBorder);
   }
 
   @override
-  bool shouldRepaint(covariant PillarPainter oldDelegate) {
-    return oldDelegate.altura != altura;
-  }
+  bool shouldRepaint(covariant PillarPainter oldDelegate) =>
+      oldDelegate.altura != altura;
 }

@@ -67,7 +67,9 @@ class GrupoPage extends StatelessWidget {
           } else if (index == 2) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const RankingSemanal()),
+              MaterialPageRoute(
+                builder: (context) => RankingSemanal(grupoId: grupoId),
+              ), // <-- AQUI ESTÁ A CORREÇÃO!
             );
           }
         },

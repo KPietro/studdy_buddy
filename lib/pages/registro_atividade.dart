@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class RegistroAtividadePage extends StatefulWidget {
   final bool isDark;
-  const RegistroAtividadePage({super.key, required this.isDark});
+  final String grupoId; // Recebe o ID do grupo
+
+  const RegistroAtividadePage({
+    super.key,
+    required this.isDark,
+    required this.grupoId,
+  });
 
   @override
   State<RegistroAtividadePage> createState() => _RegistroAtividadePageState();
@@ -14,209 +22,213 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
   Color get textMain => widget.isDark ? Colors.white : Colors.black;
   Color get pillBg => widget.isDark ? const Color(0xFF333333) : Colors.white;
 
-  bool usarTimer = true;
-  bool timerRodando = false;
+  final acaoController = TextEditingController();
+  final descricaoController = TextEditingController();
+  final minutosController = TextEditingController();
+
+  String tipoTarefaSelecionada = 'Comum';
+  bool isLoading = false;
+
+  Future<void> _salvarAtividade() async {
+    if (acaoController.text.isEmpty || minutosController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Preencha a ação e os minutos!")),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("Usuário não logado");
+
+      int minutos = int.tryParse(minutosController.text.trim()) ?? 0;
+
+      // 1. LER AS REGRAS DO GRUPO (quantos pontos vale cada minuto)
+      DocumentSnapshot grupoDoc = await FirebaseFirestore.instance
+          .collection('grupos')
+          .doc(widget.grupoId)
+          .get();
+      var dadosGrupo = grupoDoc.data() as Map<String, dynamic>?;
+
+      int ptsPorMinuto = dadosGrupo?['pontos_minuto'] ?? 1;
+      int metaMaiorBonus = dadosGrupo?['meta_maior'] ?? 0;
+
+      // 2. CÁLCULO DOS PONTOS
+      int pontosGanhos = minutos * ptsPorMinuto;
+      int incrementoAtividadeMaior = 0;
+
+      // Se for uma Meta Maior, ganha os pontos extras e conta +1 nas estatísticas de Atividade Maior
+      if (tipoTarefaSelecionada == 'Meta Maior') {
+        pontosGanhos += metaMaiorBonus;
+        incrementoAtividadeMaior = 1;
+      }
+
+      // 3. SALVAR A TAREFA NA SUBCOLEÇÃO
+      await FirebaseFirestore.instance
+          .collection('grupos')
+          .doc(widget.grupoId)
+          .collection('tarefas')
+          .add({
+            'acao': acaoController.text.trim(),
+            'descricao': descricaoController.text.trim(),
+            'minutos': minutos,
+            'tipotarefa': tipoTarefaSelecionada,
+            'criador_id': user.uid,
+            'data_criacao': FieldValue.serverTimestamp(),
+            'urlimagem': "", // Pode implementar upload de imagem depois
+          });
+
+      // 4. ATUALIZAR O MEMBRO (INCREMENTANDO OS PONTOS E A QTD DE TAREFAS)
+      await FirebaseFirestore.instance
+          .collection('grupos')
+          .doc(widget.grupoId)
+          .collection('membros')
+          .doc(user.uid)
+          .update({
+            'pontosSemanais': FieldValue.increment(pontosGanhos),
+            'pontosTotais': FieldValue.increment(pontosGanhos),
+            'atividadesMaioresSemanais': FieldValue.increment(
+              incrementoAtividadeMaior,
+            ),
+            'atividadesMaioresTotais': FieldValue.increment(
+              incrementoAtividadeMaior,
+            ),
+          });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Atividade registrada! Pontos computados."),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Erro ao registrar: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2, // Número de "Sub Abas"
-      child: Scaffold(
-        backgroundColor: bgMain,
-        appBar: AppBar(
-          backgroundColor: widget.isDark
-              ? const Color(0xFF4A0000)
-              : Colors.green,
-          title: const Text(
-            "Registrar Atividade",
-            style: TextStyle(color: Colors.white),
-          ),
-          iconTheme: const IconThemeData(color: Colors.white),
-          bottom: const TabBar(
-            indicatorColor: Colors.white,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white54,
-            tabs: [
-              Tab(text: "Atividade Comum", icon: Icon(Icons.timer)),
-              Tab(text: "Tarefa Maior", icon: Icon(Icons.workspace_premium)),
-            ],
-          ),
+    return Scaffold(
+      backgroundColor: bgMain,
+      appBar: AppBar(
+        backgroundColor: widget.isDark ? const Color(0xFF4A0000) : Colors.green,
+        title: const Text(
+          "Registrar Atividade",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        body: TabBarView(children: [_buildAbaComum(), _buildAbaMaior()]),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-    );
-  }
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildLabel("Ação / Título"),
+            _buildTextField(acaoController, "Ex: Lendo onde peca"),
 
-  Widget _buildAbaComum() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildLabel("O que você está fazendo?"),
-          _buildTextField("Ex: Lendo capítulo 4 de História"),
-          const SizedBox(height: 20),
+            _buildLabel("Descrição"),
+            _buildTextField(descricaoController, "Ex: Li 2 capítulos..."),
 
-          // Toggle Timer vs Manual
-          Container(
-            decoration: BoxDecoration(
-              color: pillBg,
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: SwitchListTile(
-              title: Text(
-                "Usar Cronômetro (Timer)",
-                style: TextStyle(color: textMain, fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                "Desative para inserir tempo manual",
-                style: TextStyle(
-                  color: textMain.withOpacity(0.6),
-                  fontSize: 12,
+            _buildLabel("Minutos Investidos"),
+            _buildTextField(minutosController, "Ex: 45", isNumber: true),
+
+            _buildLabel("Tipo de Tarefa"),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              decoration: BoxDecoration(
+                color: pillBg,
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: widget.isDark ? Colors.white24 : Colors.grey,
                 ),
               ),
-              activeColor: widget.isDark ? Colors.red : Colors.green,
-              value: usarTimer,
-              onChanged: (val) => setState(() => usarTimer = val),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: tipoTarefaSelecionada,
+                  dropdownColor: pillBg,
+                  isExpanded: true,
+                  style: TextStyle(color: textMain),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'Comum',
+                      child: Text("Comum (Apenas tempo)"),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Meta Maior',
+                      child: Text("Meta Maior (+ Bônus de Pontos)"),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null)
+                      setState(() => tipoTarefaSelecionada = val);
+                  },
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
 
-          if (usarTimer)
-            Center(
-              child: Column(
-                children: [
-                  Text(
-                    "00:00:00",
-                    style: TextStyle(
-                      color: textMain,
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'monospace',
-                    ),
+            const SizedBox(height: 40),
+
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: widget.isDark
+                      ? Colors.red[700]
+                      : Colors.green,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                  const SizedBox(height: 10),
-                  ElevatedButton.icon(
-                    onPressed: () =>
-                        setState(() => timerRodando = !timerRodando),
-                    icon: Icon(
-                      timerRodando ? Icons.stop : Icons.play_arrow,
-                      color: Colors.white,
-                    ),
-                    label: Text(
-                      timerRodando ? "Parar Timer" : "Iniciar Timer",
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: timerRodando
-                          ? Colors.red
-                          : (widget.isDark ? Colors.red[900] : Colors.green),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 30,
-                        vertical: 15,
+                ),
+                onPressed: isLoading ? null : _salvarAtividade,
+                child: isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        "Salvar Atividade",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ),
-                ],
               ),
-            )
-          else
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildLabel("Tempo investido (em minutos)"),
-                _buildTextField("Ex: 45", isNumber: true),
-              ],
             ),
-
-          const SizedBox(height: 30),
-          _buildBotaoUpload(
-            "Adicionar Foto / Print (Opcional)",
-            Icons.add_a_photo,
-          ),
-          const SizedBox(height: 10),
-          _buildTextField("Descrição opcional...", maxLines: 3),
-          const SizedBox(height: 30),
-          _buildBotaoEnviar("Enviar Atividade"),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAbaMaior() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.amber),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.amber),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "Tarefas maiores exigem comprovação! Foto e descrição detalhada são obrigatórios.",
-                    style: TextStyle(color: textMain, fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          _buildLabel("Qual foi a Tarefa Maior?"),
-          _buildTextField("Ex: Simulado ENEM do cursinho"),
-
-          _buildLabel("Tempo investido (em minutos)"),
-          _buildTextField("Ex: 240", isNumber: true),
-
-          const SizedBox(height: 20),
-          _buildBotaoUpload(
-            "Adicionar Foto/Print (OBRIGATÓRIO)",
-            Icons.camera_alt,
-            obrigatorio: true,
-          ),
-
-          const SizedBox(height: 15),
-          _buildLabel("Descrição (OBRIGATÓRIO)"),
-          _buildTextField(
-            "Explique suas dificuldades e o que achou da tarefa...",
-            maxLines: 4,
-          ),
-
-          const SizedBox(height: 30),
-          _buildBotaoEnviar("Enviar Atividade"),
-        ],
-      ),
-    );
-  }
-
-  // --- Widgets Auxiliares ---
-  Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8, top: 15),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: textMain,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
+          ],
         ),
       ),
     );
   }
+
+  Widget _buildLabel(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, top: 15),
+    child: Text(
+      text,
+      style: TextStyle(
+        color: textMain,
+        fontWeight: FontWeight.bold,
+        fontSize: 14,
+      ),
+    ),
+  );
 
   Widget _buildTextField(
+    TextEditingController controller,
     String hint, {
     bool isNumber = false,
-    int maxLines = 1,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -225,8 +237,8 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
         border: Border.all(color: widget.isDark ? Colors.white24 : Colors.grey),
       ),
       child: TextField(
+        controller: controller,
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-        maxLines: maxLines,
         style: TextStyle(color: textMain),
         decoration: InputDecoration(
           hintText: hint,
@@ -235,57 +247,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 15,
             vertical: 15,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBotaoUpload(
-    String texto,
-    IconData icone, {
-    bool obrigatorio = false,
-  }) {
-    return OutlinedButton.icon(
-      onPressed: () {},
-      icon: Icon(
-        icone,
-        color: obrigatorio
-            ? Colors.amber
-            : (widget.isDark ? Colors.red : Colors.green),
-      ),
-      label: Text(texto, style: TextStyle(color: textMain, fontSize: 12)),
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: obrigatorio ? Colors.amber : Colors.grey),
-        padding: const EdgeInsets.all(15),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      ),
-    );
-  }
-
-  Widget _buildBotaoEnviar(String textoBotao) {
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: widget.isDark ? Colors.red[700] : Colors.green,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-        ),
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("$textoBotao enviada com sucesso!")),
-          );
-          Navigator.pop(context);
-        },
-        child: Text(
-          textoBotao,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
           ),
         ),
       ),
