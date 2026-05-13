@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/settings_controller.dart';
 
+// ADICIONE ESTES IMPORTS ↓
+import 'package:firebase_auth/firebase_auth.dart';
+import 'login.dart'; // troque pelo caminho correto da sua tela de login
+
 class ConfigPage extends StatelessWidget {
   const ConfigPage({super.key});
 
@@ -151,6 +155,51 @@ class ConfigPage extends StatelessWidget {
             label: settings.fontSize.toString(),
             onChanged: (value) =>
                 settings.setFontSize(value),
+          ),
+
+          // =========================================
+          // BOTÃO LOGOUT ADICIONADO
+          // =========================================
+
+          const SizedBox(height: 30),
+
+          SizedBox(
+            width: double.infinity,
+            height: 55,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              icon: const Icon(
+                Icons.logout,
+                color: Colors.white,
+              ),
+              label: const Text(
+                "LOGOUT",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+
+                if (context.mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const LoginPage(),
+                    ),
+                    (route) => false,
+                  );
+                }
+              },
+            ),
           ),
         ],
       ),
