@@ -1,44 +1,57 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../controllers/settings_controller.dart';
-
+import '../controllers/theme_controller.dart';
 import 'criacao_grupo.dart';
 import 'chats_recentes.dart';
 import 'registro_atividade.dart';
 import 'grupo_page.dart';
 import 'perfil.dart';
-import 'config_page.dart';
+import 'config_page.dart'; // <-- IMPORTANTE: Import da nova página de configurações
 import '../controllers/grupo_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chat_page.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class HomePage extends StatefulWidget {
+  final bool isDark;
 
-  Color _bgMain(bool isDark) =>
+  const HomePage({super.key, required this.isDark});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late bool isDark;
+
+  @override
+  void initState() {
+    super.initState();
+    isDark = widget.isDark;
+  }
+
+  // Deixei essa função aqui caso queira usar em outro lugar, mas a engrenagem agora chama a página!
+  void toggleTheme() async {
+    ThemeController.isDark = !ThemeController.isDark;
+    await ThemeController.saveTheme(ThemeController.isDark);
+    setState(() {
+      isDark = ThemeController.isDark;
+    });
+  }
+
+  Color get bgMain =>
       isDark ? const Color(0xFF160303) : const Color(0xFFEAFaf1);
-
-  Color _bgSidebar(bool isDark) =>
+  Color get bgSidebar =>
       isDark ? const Color(0xFF4A0000) : const Color(0xFF4CAF50);
-
-  Color _textMain(bool isDark) =>
-      isDark ? Colors.white : Colors.black;
-
-  Color _pillBg(bool isDark) =>
+  Color get textMain => isDark ? Colors.white : Colors.black;
+  Color get pillBg =>
       isDark ? const Color(0xFF333333) : const Color(0xFFB0B0B0);
 
   @override
   Widget build(BuildContext context) {
-    final settings = Provider.of<SettingsController>(context);
-    final isDark = settings.isDarkMode;
-
     return Scaffold(
-      backgroundColor: _bgMain(isDark),
-
+      backgroundColor: bgMain,
       body: SafeArea(
         child: Row(
           children: [
-            // 🔹 MAIN AREA
             Expanded(
               child: Stack(
                 children: [
@@ -50,14 +63,13 @@ class HomePage extends StatelessWidget {
                           children: [
                             const SizedBox(height: 50),
 
-                            // 🔹 PERFIL
+                            // --- ÍCONE DE PERFIL COM NAVEGAÇÃO ---
                             GestureDetector(
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        const PerfilPage(),
+                                    builder: (context) => const PerfilPage(),
                                   ),
                                 );
                               },
@@ -65,9 +77,7 @@ class HomePage extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: isDark
-                                        ? Colors.white24
-                                        : Colors.black26,
+                                    color: Colors.white24,
                                     width: 2,
                                   ),
                                 ),
@@ -78,28 +88,35 @@ class HomePage extends StatelessWidget {
                                       : Colors.black12,
                                   child: Icon(
                                     Icons.person,
-                                    color: _textMain(isDark),
+                                    color: textMain,
                                     size: 30,
                                   ),
                                 ),
                               ),
                             ),
+
+                            const SizedBox(height: 20),
+                            const Divider(
+                              color: Colors.white24,
+                              indent: 15,
+                              endIndent: 15,
+                            ),
                           ],
                         ),
                       ),
 
+                      // Título "Recentes"
                       Text(
                         "Recentes",
                         style: TextStyle(
-                          color: _textMain(isDark),
+                          color: textMain,
                           fontSize: 28,
                           fontFamily: 'Comic Sans MS',
                         ),
                       ),
-
                       const SizedBox(height: 20),
 
-                      // 🔹 LISTA RECENTES (mantida igual funcionalmente)
+                      // 📋 LISTA DE RECENTES
                       Expanded(
                         child: ListView.builder(
                           padding: const EdgeInsets.only(
@@ -123,16 +140,49 @@ class HomePage extends StatelessWidget {
                                       right: 15,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: _pillBg(isDark),
-                                      borderRadius:
-                                          BorderRadius.circular(25),
+                                      color: pillBg,
+                                      borderRadius: BorderRadius.circular(25),
                                     ),
-                                    child: Text(
+                                    child: const Text(
                                       "Ablublé tanana bla bla\nbla...",
                                       style: TextStyle(
-                                        color: _textMain(isDark),
+                                        color: Colors.white,
                                         fontSize: 12,
                                       ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: -15,
+                                    top: 2,
+                                    child: Stack(
+                                      children: [
+                                        const CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: Colors.green,
+                                          child: Text(
+                                            "P",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          left: 0,
+                                          top: 0,
+                                          child: CircleAvatar(
+                                            radius: 6,
+                                            backgroundColor: Colors.red,
+                                            child: Text(
+                                              "G1",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 5,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -144,24 +194,23 @@ class HomePage extends StatelessWidget {
                     ],
                   ),
 
-                  // 🔹 CONFIG
+                  // ⚙️ ENGRENAGEM (ABRE A PÁGINA DE CONFIGURAÇÕES)
                   Positioned(
                     bottom: 20,
                     left: 20,
                     child: GestureDetector(
                       onTap: () {
+                        // NAVEGAÇÃO CORRIGIDA PARA A TELA DE CONFIGURAÇÕES
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                const ConfigPage(),
+                            builder: (context) => const ConfigPage(),
                           ),
                         );
                       },
                       child: Icon(
                         Icons.settings,
-                        color:
-                            isDark ? Colors.red : Colors.greenAccent,
+                        color: isDark ? Colors.red : Colors.greenAccent,
                         size: 40,
                       ),
                     ),
@@ -170,16 +219,44 @@ class HomePage extends StatelessWidget {
               ),
             ),
 
-            // 🔹 SIDEBAR GRUPOS
+            // 🔹 SIDEBAR (DIREITA)
             Container(
               width: 70,
               decoration: BoxDecoration(
-                color: _bgSidebar(isDark),
+                color: bgSidebar,
+                border: Border(
+                  left: BorderSide(
+                    color: isDark ? Colors.red.shade900 : Colors.green.shade800,
+                    width: 2,
+                  ),
+                ),
               ),
               child: Column(
                 children: [
                   const SizedBox(height: 20),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              CriacaoGrupoPage(isDark: isDark),
+                        ),
+                      );
+                    },
+                    child: Icon(
+                      Icons.add_circle_outline,
+                      color: textMain,
+                      size: 45,
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10),
+                    child: Divider(color: Colors.white54, thickness: 1),
+                  ),
+                  const SizedBox(height: 10),
 
+                  // 📋 LISTA DE GRUPOS DINÂMICA
                   Expanded(
                     child: StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
@@ -197,12 +274,12 @@ class HomePage extends StatelessWidget {
                         return ListView.builder(
                           itemCount: grupos.length,
                           itemBuilder: (context, index) {
-                            var dados = grupos[index].data()
-                                as Map<String, dynamic>;
+                            var dados =
+                                grupos[index].data() as Map<String, dynamic>;
 
+                            // VARIÁVEIS REAIS DO BANCO
                             String idDoGrupo = grupos[index].id;
-                            String nomeDoGrupo =
-                                dados['nome'] ?? "Sem nome";
+                            String nomeDoGrupo = dados['nome'] ?? "Sem nome";
 
                             return GestureDetector(
                               onTap: () {
@@ -224,6 +301,27 @@ class HomePage extends StatelessWidget {
                       },
                     ),
                   ),
+
+                  // Ícone de Mensagem
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ChatsRecentesPage(isDark: isDark),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Icon(
+                        Icons.email_outlined,
+                        color: textMain,
+                        size: 40,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -238,9 +336,10 @@ class HomePage extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 15),
       width: 55,
       height: 55,
-      decoration: const BoxDecoration(
-        color: Color(0xFF5A5A5A),
+      decoration: BoxDecoration(
+        color: const Color(0xFF5A5A5A),
         shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
       ),
       child: Center(
         child: Text(

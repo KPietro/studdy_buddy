@@ -30,7 +30,7 @@ class _AuthCheckState extends State<AuthCheck> {
 
         // Se encontrou um usuário logado no celular, vai direto pra Home!
         if (snapshot.hasData && snapshot.data != null) {
-          return const HomePage();
+          return HomePage(isDark: ThemeController.isDark);
         }
 
         // Se não encontrou ninguém logado (ou se o usuário clicou em Sair depois), vai pro Login
