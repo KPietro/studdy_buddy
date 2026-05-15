@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async'; // <-- Necessário para o Timer funcionar!
 import '../controllers/imagem_controller.dart';
 
 class RegistroAtividadePage extends StatefulWidget {
@@ -27,6 +28,10 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
   bool timerRodando = false;
   bool isSaving = false;
 
+  // --- VARIÁVEIS DO TIMER ---
+  Timer? _timer;
+  int _segundosDecorridos = 0;
+
   // Controladores para a Aba Comum
   final _acaoComumCtrl = TextEditingController();
   final _minutosComumCtrl = TextEditingController();
@@ -43,6 +48,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
 
   @override
   void dispose() {
+    _timer?.cancel(); // Cancela o timer se sair da tela
     _acaoComumCtrl.dispose();
     _minutosComumCtrl.dispose();
     _descComumCtrl.dispose();
@@ -52,8 +58,31 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     super.dispose();
   }
 
-  // --- LÓGICA DE UPLOAD ---
+  // --- FUNÇÕES DO TIMER ---
+  void _iniciarOuPararTimer() {
+    if (timerRodando) {
+      _timer?.cancel();
+      setState(() => timerRodando = false);
+    } else {
+      setState(() => timerRodando = true);
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (mounted) {
+          setState(() {
+            _segundosDecorridos++;
+          });
+        }
+      });
+    }
+  }
 
+  String _formatarTempo() {
+    int h = _segundosDecorridos ~/ 3600;
+    int m = (_segundosDecorridos % 3600) ~/ 60;
+    int s = _segundosDecorridos % 60;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  // --- LÓGICA DE UPLOAD ---
   Future<void> _escolherImagem(String tipo) async {
     setState(() {
       if (tipo == "Comum") isUploadingComum = true;
@@ -89,8 +118,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     }
   }
 
-  // --- LÓGICA DE SALVAR ATUALIZADA ---
-
+  // --- LÓGICA DE SALVAR ---
   Future<void> _salvarAtividade(String tipoTarefa) async {
     if (isSaving) return;
 
@@ -127,10 +155,41 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception("Usuário não logado.");
 
-      num minutos =
-          num.tryParse(minStr) ?? (usarTimer && tipoTarefa == "Comum" ? 30 : 0);
+      int minutos = 0;
 
-      // 1. CARIMBO MÁGICO: Pega sua foto antes de salvar a tarefa!
+      // CÁLCULO DOS MINUTOS: Manual ou pelo Timer
+      if (tipoTarefa == "Comum" && usarTimer) {
+        // Arredonda pra cima: Se tem 1 seg, vira 1 min. Se tem 61 seg, vira 2 min.
+        minutos = _segundosDecorridos > 0
+            ? ((_segundosDecorridos + 59) ~/ 60)
+            : 0;
+      } else {
+        minutos = int.tryParse(minStr) ?? 0;
+      }
+
+      // TRAVA DE 10.000 MINUTOS E ZERO MINUTOS
+      if (minutos <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("A atividade precisa ter pelo menos 1 minuto!"),
+            backgroundColor: Colors.amber,
+          ),
+        );
+        setState(() => isSaving = false);
+        return;
+      }
+      if (minutos > 10000) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("O limite máximo por atividade é de 10.000 minutos!"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => isSaving = false);
+        return;
+      }
+
+      // 1. Pega dados do criador
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('usuarios')
           .doc(user.uid)
@@ -144,6 +203,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
         fotoDoCriador = userData['url_perfil'] ?? "";
       }
 
+      // 2. Pega regras do grupo
       DocumentSnapshot grupoDoc = await FirebaseFirestore.instance
           .collection('grupos')
           .doc(widget.grupoId)
@@ -163,7 +223,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
                 .toInt();
       }
 
-      int pontosGanhos = (minutos.toInt()) * ptsPorMinuto;
+      int pontosGanhos = minutos * ptsPorMinuto;
       int incrementoAtividadeMaior = 0;
 
       if (tipoTarefa == "Tarefa Maior") {
@@ -186,8 +246,8 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
         'tipotarefa': tipoTarefa,
         'urlimagem': urlImagem ?? "",
         'criador_id': user.uid,
-        'criador_nome': nomeDoCriador, // <-- Salvando direto na tarefa
-        'criador_foto': fotoDoCriador, // <-- Salvando direto na tarefa
+        'criador_nome': nomeDoCriador,
+        'criador_foto': fotoDoCriador,
         'data_criacao': FieldValue.serverTimestamp(),
       });
 
@@ -211,6 +271,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
       await batch.commit();
 
       if (mounted) {
+        _timer?.cancel(); // Para o timer ao enviar
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Atividade enviada e pontos computados!"),
@@ -232,8 +293,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
       if (mounted) setState(() => isSaving = false);
     }
   }
-
-  // --- UI ORIGINAL ---
 
   @override
   Widget build(BuildContext context) {
@@ -297,7 +356,15 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
               ),
               activeColor: widget.isDark ? Colors.red : Colors.green,
               value: usarTimer,
-              onChanged: (val) => setState(() => usarTimer = val),
+              onChanged: (val) {
+                setState(() {
+                  usarTimer = val;
+                  if (!val) {
+                    _timer?.cancel();
+                    timerRodando = false;
+                  }
+                });
+              },
             ),
           ),
           const SizedBox(height: 20),
@@ -307,7 +374,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
               child: Column(
                 children: [
                   Text(
-                    "00:00:00",
+                    _formatarTempo(), // Mostra o timer rodando bonitão!
                     style: TextStyle(
                       color: textMain,
                       fontSize: 48,
@@ -317,8 +384,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
                   ),
                   const SizedBox(height: 10),
                   ElevatedButton.icon(
-                    onPressed: () =>
-                        setState(() => timerRodando = !timerRodando),
+                    onPressed: _iniciarOuPararTimer,
                     icon: Icon(
                       timerRodando ? Icons.stop : Icons.play_arrow,
                       color: Colors.white,
@@ -402,20 +468,17 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
             ),
           ),
           const SizedBox(height: 20),
-
           _buildLabel("Qual foi a Tarefa Maior?"),
           _buildTextField(
             "Ex: Simulado ENEM do cursinho",
             controller: _acaoMaiorCtrl,
           ),
-
           _buildLabel("Tempo investido (em minutos)"),
           _buildTextField(
             "Ex: 240",
             isNumber: true,
             controller: _minutosMaiorCtrl,
           ),
-
           const SizedBox(height: 20),
           _buildBotaoUpload(
             urlImagemMaior == null
@@ -426,7 +489,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
             isLoading: isUploadingMaior,
             onPressed: () => _escolherImagem("Maior"),
           ),
-
           const SizedBox(height: 15),
           _buildLabel("Descrição (OBRIGATÓRIO)"),
           _buildTextField(
@@ -434,7 +496,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
             maxLines: 4,
             controller: _descMaiorCtrl,
           ),
-
           const SizedBox(height: 30),
           _buildBotaoEnviar("Enviar Atividade", "Tarefa Maior"),
         ],
