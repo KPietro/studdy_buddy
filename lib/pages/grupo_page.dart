@@ -3,7 +3,7 @@ import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'ranking_semanal.dart';
-import 'registro_atividade.dart'; // Mantido para caso use a página
+import 'registro_atividade.dart';
 import 'chat_page.dart';
 
 class GrupoPage extends StatelessWidget {
@@ -35,7 +35,6 @@ class GrupoPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgMain,
-      // --- BARRA DE NAVEGAÇÃO INFERIOR ANIMADA ---
       bottomNavigationBar: CurvedNavigationBar(
         backgroundColor: bgMain,
         color: isDark ? const Color(0xFF4A0000) : const Color(0xFF4CAF50),
@@ -44,7 +43,7 @@ class GrupoPage extends StatelessWidget {
             : const Color(0xFF4CAF50),
         height: 60,
         animationDuration: const Duration(milliseconds: 300),
-        index: 1, // Começa no meio (Chat) por padrão visual
+        index: 1,
         items: const <Widget>[
           Icon(Icons.add_circle_outline, color: Colors.white, size: 30),
           Icon(Icons.email_outlined, color: Colors.white, size: 30),
@@ -75,7 +74,7 @@ class GrupoPage extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (context) => RankingSemanal(grupoId: grupoId),
-              ), // <-- AQUI ESTÁ A CORREÇÃO!
+              ),
             );
           }
         },
@@ -83,7 +82,6 @@ class GrupoPage extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // --- HEADER: BOTÃO VOLTAR E AVATAR DO GRUPO ---
             Padding(
               padding: const EdgeInsets.only(
                 left: 20,
@@ -138,7 +136,6 @@ class GrupoPage extends StatelessWidget {
               ),
             ),
 
-            // --- BARRA DE PESQUISA ---
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 20.0,
@@ -166,7 +163,6 @@ class GrupoPage extends StatelessWidget {
               ),
             ),
 
-            // --- LISTA DE TAREFAS DINÂMICA DO FIREBASE ---
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -199,39 +195,25 @@ class GrupoPage extends StatelessWidget {
                           tarefas[index].data() as Map<String, dynamic>;
 
                       String titulo = tarefa['acao'] ?? "Atividade";
-                      String pontos = "${tarefa['minutos'] ?? 0}pts";
-                      String criadorId = tarefa['criador_id'] ?? "";
+                      String descricao =
+                          tarefa['descricao'] ?? "Sem descrição.";
+                      String tipoTarefa = tarefa['tipotarefa'] ?? "Comum";
+                      int minutos = (tarefa['minutos'] ?? 0).toInt();
+                      String pontos = "${minutos}pts";
                       String provaUrl = tarefa['urlimagem'] ?? "";
+                      String nomeUsuario = tarefa['criador_nome'] ?? "?";
+                      String? fotoUrl = tarefa['criador_foto'];
 
-                      // FutureBuilder para buscar a foto e o nome de quem fez a tarefa
-                      return FutureBuilder<DocumentSnapshot>(
-                        future: FirebaseFirestore.instance
-                            .collection('usuarios')
-                            .doc(criadorId)
-                            .get(),
-                        builder: (context, userSnap) {
-                          String nomeUsuario = "?";
-                          String? fotoUrl;
-
-                          if (userSnap.hasData && userSnap.data!.exists) {
-                            var userData =
-                                userSnap.data!.data() as Map<String, dynamic>;
-                            nomeUsuario =
-                                userData['nome_exibicao'] ??
-                                userData['nome'] ??
-                                "?";
-                            fotoUrl = userData['url_perfil'];
-                          }
-
-                          return _buildTarefaItem(
-                            context,
-                            titulo,
-                            pontos,
-                            fotoUrl,
-                            nomeUsuario,
-                            provaUrl: provaUrl,
-                          );
-                        },
+                      return _buildTarefaItem(
+                        context,
+                        titulo,
+                        pontos,
+                        fotoUrl,
+                        nomeUsuario,
+                        provaUrl: provaUrl,
+                        descricao: descricao,
+                        tipoTarefa: tipoTarefa,
+                        minutos: minutos,
                       );
                     },
                   );
@@ -244,7 +226,6 @@ class GrupoPage extends StatelessWidget {
     );
   }
 
-  // --- WIDGET DA TAREFA ATUALIZADO ---
   Widget _buildTarefaItem(
     BuildContext context,
     String titulo,
@@ -253,6 +234,9 @@ class GrupoPage extends StatelessWidget {
     String nomeUsuario, {
     bool hasProgress = false,
     String? provaUrl,
+    String descricao = "",
+    String tipoTarefa = "",
+    int minutos = 0,
   }) {
     return GestureDetector(
       onTap: () => _mostrarDetalhesTarefa(
@@ -261,6 +245,9 @@ class GrupoPage extends StatelessWidget {
         pontos,
         provaUrl,
         nomeUsuario,
+        descricao,
+        tipoTarefa,
+        minutos,
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
@@ -275,7 +262,7 @@ class GrupoPage extends StatelessWidget {
                 backgroundImage: _obterImagem(fotoUrl),
                 child: (fotoUrl == null || fotoUrl.isEmpty)
                     ? Text(
-                        nomeUsuario.isNotEmpty
+                        nomeUsuario != "?" && nomeUsuario.isNotEmpty
                             ? nomeUsuario[0].toUpperCase()
                             : "?",
                         style: const TextStyle(
@@ -289,52 +276,38 @@ class GrupoPage extends StatelessWidget {
             const SizedBox(width: 15),
             Expanded(
               child: Container(
-                height: 49, // Aumentado em 4 pixels (era 45)
+                height: 49,
                 decoration: BoxDecoration(
                   color: const Color(0xFF5A5A5A),
                   borderRadius: BorderRadius.circular(25),
                 ),
-                child: Stack(
-                  children: [
-                    if (hasProgress)
-                      Positioned(
-                        left: 15,
-                        right: 40,
-                        bottom: 8,
-                        child: Container(height: 3, color: Colors.blue),
-                      ),
-                    // Textos Centralizados
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 15),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                titulo,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize:
-                                      19, // Aumentado em 6 pixels (era 13)
-                                ),
-                              ),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            titulo,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 19,
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              "- $pontos",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18, // Aumentado em 6 pixels (era 12)
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "- $pontos",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -344,13 +317,16 @@ class GrupoPage extends StatelessWidget {
     );
   }
 
-  // --- MODAL DE DETALHES ATUALIZADO (AGORA MOSTRA A FOTO!) ---
+  // --- MODAL DE DETALHES ---
   void _mostrarDetalhesTarefa(
     BuildContext context,
     String titulo,
     String pontos,
     String? provaUrl,
     String nomeUsuario,
+    String descricao,
+    String tipoTarefa,
+    int minutos,
   ) {
     showModalBottomSheet(
       context: context,
@@ -360,7 +336,7 @@ class GrupoPage extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      isScrollControlled: true, // Permite que o modal fique maior se tiver foto
+      isScrollControlled: true,
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.all(25.0),
@@ -372,92 +348,72 @@ class GrupoPage extends StatelessWidget {
                 "Detalhes da Atividade",
                 style: TextStyle(
                   color: textMain,
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 15),
-              Text(
-                "👤 Feito por: $nomeUsuario",
-                style: TextStyle(color: textMain, fontSize: 16),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                "📌 Atividade: $titulo",
-                style: TextStyle(color: textMain, fontSize: 16),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                "🏆 Recompensa: $pontos",
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              const SizedBox(height: 20),
+              _buildInfoRow("👤", "Feito por:", nomeUsuario),
+              const SizedBox(height: 10),
+              _buildInfoRow("🏷️", "Tipo:", tipoTarefa),
+              const SizedBox(height: 10),
+              _buildInfoRow("📌", "Ação:", titulo),
+              const SizedBox(height: 10),
+              _buildInfoRow("📝", "Descrição:", descricao),
+              const SizedBox(height: 10),
+              _buildInfoRow("⏱️", "Tempo:", "$minutos minutos"),
+              const SizedBox(height: 10),
+              _buildInfoRow("🏆", "Recompensa:", pontos),
 
-              // SE TIVER FOTO, ELA APARECE AQUI!
               if (provaUrl != null && provaUrl.isNotEmpty) ...[
-                const SizedBox(height: 20),
+                const SizedBox(height: 25),
                 const Text(
-                  "📷 Comprovação:",
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  "📷 Comprovação (Clique para ampliar):",
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
-                  child: CachedNetworkImage(
-                    imageUrl: provaUrl,
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => const Center(
-                      child: CircularProgressIndicator(color: Colors.green),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      height: 150,
-                      color: Colors.black26,
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.wifi_off, color: Colors.grey, size: 40),
-                          Text(
-                            "Imagem indisponível offline",
-                            style: TextStyle(color: Colors.grey),
+                GestureDetector(
+                  onTap: () {
+                    // ABRE A IMAGEM EM TELA CHEIA!
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => Scaffold(
+                          backgroundColor: Colors.black,
+                          appBar: AppBar(
+                            backgroundColor: Colors.black,
+                            iconTheme: const IconThemeData(color: Colors.white),
                           ),
-                        ],
+                          body: Center(
+                            child: InteractiveViewer(
+                              child: CachedNetworkImage(imageUrl: provaUrl),
+                            ),
+                          ),
+                        ),
                       ),
+                    );
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(15),
+                    child: CachedNetworkImage(
+                      imageUrl: provaUrl,
+                      height: 220,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const Center(
+                        child: CircularProgressIndicator(color: Colors.green),
+                      ),
+                      errorWidget: (context, url, error) =>
+                          const Icon(Icons.error),
                     ),
                   ),
                 ),
               ],
-
               const SizedBox(height: 30),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[800],
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _abrirModalQuestionamento(context);
-                  },
-                  icon: const Icon(Icons.gavel, color: Colors.white),
-                  label: const Text(
-                    "Questionar Tarefa",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         );
@@ -465,96 +421,23 @@ class GrupoPage extends StatelessWidget {
     );
   }
 
-  void _abrirModalQuestionamento(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDark ? const Color(0xFF1D0000) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            top: 25,
-            left: 25,
-            right: 25,
+  Widget _buildInfoRow(String emoji, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("$emoji ", style: const TextStyle(fontSize: 16)),
+        Text(
+          "$label ",
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.warning_amber_rounded,
-                    color: Colors.amber,
-                    size: 30,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    "Questionar Atividade",
-                    style: TextStyle(
-                      color: textMain,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF333333) : Colors.grey[200],
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.grey),
-                ),
-                child: TextField(
-                  maxLines: 3,
-                  style: TextStyle(color: textMain),
-                  decoration: const InputDecoration(
-                    hintText: "Descreva o motivo da suspeita...",
-                    hintStyle: TextStyle(color: Colors.grey),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(15),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber[700],
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Questionamento enviado aos líderes!"),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    "Enviar para Análise",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
+        ),
+        Expanded(
+          child: Text(value, style: TextStyle(color: textMain, fontSize: 16)),
+        ),
+      ],
     );
   }
 }

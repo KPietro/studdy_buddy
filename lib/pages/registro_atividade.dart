@@ -52,7 +52,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     super.dispose();
   }
 
-  // --- LÓGICA DE UPLOAD (MANTIDA DA SUA VERSÃO) ---
+  // --- LÓGICA DE UPLOAD ---
 
   Future<void> _escolherImagem(String tipo) async {
     setState(() {
@@ -89,12 +89,11 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     }
   }
 
-  // --- LÓGICA DE SALVAR (FUNDIDA COM A DO BRAYAN) ---
+  // --- LÓGICA DE SALVAR ATUALIZADA ---
 
   Future<void> _salvarAtividade(String tipoTarefa) async {
     if (isSaving) return;
 
-    // Coleta os dados dependendo da aba que você está usando
     String acao = tipoTarefa == "Comum"
         ? _acaoComumCtrl.text
         : _acaoMaiorCtrl.text;
@@ -106,7 +105,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
         : _minutosMaiorCtrl.text;
     String? urlImagem = tipoTarefa == "Comum" ? urlImagemComum : urlImagemMaior;
 
-    // Validações
     if (acao.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Preencha a ação/título da atividade!")),
@@ -129,11 +127,23 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception("Usuário não logado.");
 
-      // Converte minutos (se usou timer, coloca 30 min provisório para não quebrar a lógica)
       num minutos =
           num.tryParse(minStr) ?? (usarTimer && tipoTarefa == "Comum" ? 30 : 0);
 
-      // 1. LER AS REGRAS DO GRUPO (quantos pontos vale cada minuto) - Lógica do Brayan
+      // 1. CARIMBO MÁGICO: Pega sua foto antes de salvar a tarefa!
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(user.uid)
+          .get();
+      String nomeDoCriador = "Usuário";
+      String fotoDoCriador = "";
+      if (userDoc.exists) {
+        var userData = userDoc.data() as Map<String, dynamic>;
+        nomeDoCriador =
+            userData['nome_exibicao'] ?? userData['nome'] ?? "Usuário";
+        fotoDoCriador = userData['url_perfil'] ?? "";
+      }
+
       DocumentSnapshot grupoDoc = await FirebaseFirestore.instance
           .collection('grupos')
           .doc(widget.grupoId)
@@ -153,7 +163,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
                 .toInt();
       }
 
-      // 2. CÁLCULO DOS PONTOS - Lógica do Brayan
       int pontosGanhos = (minutos.toInt()) * ptsPorMinuto;
       int incrementoAtividadeMaior = 0;
 
@@ -162,27 +171,26 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
         incrementoAtividadeMaior = 1;
       }
 
-      // 3. USANDO O BATCH (TUDO OU NADA) - Lógica do Brayan
       final batch = FirebaseFirestore.instance.batch();
 
-      // A. Prepara a gravação da Tarefa
       var tarefaRef = FirebaseFirestore.instance
           .collection('grupos')
           .doc(widget.grupoId)
           .collection('tarefas')
-          .doc(); // Gera o ID único da tarefa
+          .doc();
 
       batch.set(tarefaRef, {
         'acao': acao,
         'descricao': desc,
         'minutos': minutos,
-        'tipotarefa': tipoTarefa, // Salva se é Comum ou Tarefa Maior
-        'urlimagem': urlImagem ?? "", // Imagem da sua lógica!
+        'tipotarefa': tipoTarefa,
+        'urlimagem': urlImagem ?? "",
         'criador_id': user.uid,
+        'criador_nome': nomeDoCriador, // <-- Salvando direto na tarefa
+        'criador_foto': fotoDoCriador, // <-- Salvando direto na tarefa
         'data_criacao': FieldValue.serverTimestamp(),
       });
 
-      // B. Prepara a atualização dos Pontos do Membro
       var membroRef = FirebaseFirestore.instance
           .collection('grupos')
           .doc(widget.grupoId)
@@ -200,7 +208,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
         ),
       });
 
-      // C. Executa as duas operações juntas instantaneamente
       await batch.commit();
 
       if (mounted) {
@@ -226,7 +233,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     }
   }
 
-  // --- UI (MANTIDA EXATAMENTE A SUA) ---
+  // --- UI ORIGINAL ---
 
   @override
   Widget build(BuildContext context) {
@@ -271,7 +278,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
           ),
           const SizedBox(height: 20),
 
-          // Toggle Timer vs Manual
           Container(
             decoration: BoxDecoration(
               color: pillBg,
@@ -436,7 +442,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     );
   }
 
-  // --- Widgets Auxiliares ---
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, top: 15),
