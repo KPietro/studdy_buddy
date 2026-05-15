@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:cached_network_image/cached_network_image.dart'; // Para o cache da imagem da internet
-import '../controllers/imagem_controller.dart'; // Import do seu uploader do Cloudinary
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:intl/intl.dart';
+import '../controllers/imagem_controller.dart';
 
 class PerfilPage extends StatefulWidget {
   const PerfilPage({super.key});
@@ -19,50 +20,30 @@ class _PerfilPageState extends State<PerfilPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   bool _isEditing = false;
-  bool _isUploadingAvatar = false; // Controle de loading da foto de perfil
+  bool _isUploadingAvatar = false;
 
   final Color figmaVinhoEscuro = const Color(0xFF1D0000);
   final Color figmaInputFill = const Color(0xFF2D0505);
   final Color botaoVermelho = const Color(0xFFDA2B2B);
 
-  // --- Função para subir a foto de perfil pro Cloudinary ---
+  // --- LÓGICA DE IMAGEM ---
+
   Future<void> _escolherFotoGaleria() async {
     setState(() => _isUploadingAvatar = true);
-
     String? link = await ImagemController.escolherESubirImagem();
 
     if (link != null) {
       await _firestore.collection('usuarios').doc(user!.uid).update({
         'url_perfil': link,
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Foto de perfil atualizada com sucesso!"),
-          ),
-        );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Cancelado ou erro de conexão."),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
-
     if (mounted) setState(() => _isUploadingAvatar = false);
   }
 
-  // --- Mágica para descobrir se é Avatar do App ou Link da Nuvem ---
   ImageProvider? _obterProvedorDeImagem(String? url) {
     if (url == null || url.isEmpty) return null;
-    if (url.startsWith('http')) {
-      return CachedNetworkImageProvider(url); // Se for do Cloudinary
-    }
-    return AssetImage(url); // Se for o Avatar padrão
+    if (url.startsWith('http')) return CachedNetworkImageProvider(url);
+    return AssetImage(url);
   }
 
   Color _hexToColor(String hexCode) {
@@ -74,6 +55,8 @@ class _PerfilPageState extends State<PerfilPage> {
       return const Color(0xFF444444);
     }
   }
+
+  // --- SELETOR DE ESTILO REFORMULADO ---
 
   void _mostrarSeletorCustomizado(Color corAtual) {
     Color corSelecionada = corAtual;
@@ -117,45 +100,15 @@ class _PerfilPageState extends State<PerfilPage> {
                       ),
                     ),
                     const SizedBox(height: 30),
-                    _buildModalLabel("Escolha um Avatar ou Foto"),
+                    _buildModalLabel("Avatar ou Galeria"),
                     const SizedBox(height: 15),
                     SizedBox(
                       height: 90,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        itemCount: 5, // 4 Avatares + 1 Botão de Galeria
+                        itemCount: 5,
                         itemBuilder: (context, index) {
-                          // O primeiro item (index 0) é o botão de subir foto da galeria!
-                          if (index == 0) {
-                            return GestureDetector(
-                              onTap: () async {
-                                Navigator.pop(context); // Fecha o modal
-                                await _escolherFotoGaleria(); // Abre a galeria
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.only(right: 15),
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white10,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: const CircleAvatar(
-                                  radius: 38,
-                                  backgroundColor: Color(0xFF3A0A0A),
-                                  child: Icon(
-                                    Icons.add_photo_alternate,
-                                    color: Colors.white70,
-                                    size: 35,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-
-                          // Os outros são os avatares (índice 1 a 4)
+                          if (index == 0) return _buildGaleriaButton();
                           String path = "assets/Avatares/Avatar$index.png";
                           return GestureDetector(
                             onTap: () {
@@ -184,31 +137,53 @@ class _PerfilPageState extends State<PerfilPage> {
                         },
                       ),
                     ),
-                    const SizedBox(height: 35),
-                    _buildModalLabel("Cor de Identidade (RGB)"),
+                    const SizedBox(height: 40),
+                    _buildModalLabel("Cor de Identidade"),
                     const SizedBox(height: 15),
                     Container(
-                      padding: const EdgeInsets.all(15),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: figmaInputFill,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: Colors.white10),
                       ),
-                      child: ColorPicker(
-                        pickerColor: corSelecionada,
-                        onColorChanged: (Color color) => corSelecionada = color,
-                        pickerAreaHeightPercent: 0.7,
-                        enableAlpha: false,
-                        displayThumbColor: false,
-                        showLabel: true,
-                        paletteType: PaletteType.hsvWithHue,
-                        pickerAreaBorderRadius: const BorderRadius.all(
-                          Radius.circular(15),
+                      child: Theme(
+                        data: ThemeData.dark().copyWith(
+                          inputDecorationTheme: InputDecorationTheme(
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 12,
+                            ),
+                            filled: true,
+                            fillColor: Colors.black26,
+                            labelStyle: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
                         ),
-                        hexInputBar: true,
+                        child: ColorPicker(
+                          pickerColor: corSelecionada,
+                          onColorChanged: (Color color) {
+                            setModalState(() => corSelecionada = color);
+                          },
+                          paletteType: PaletteType.hsvWithHue,
+                          pickerAreaHeightPercent: 0.6,
+                          enableAlpha: false,
+                          displayThumbColor: false,
+                          showLabel: true,
+                          portraitOnly: true,
+                          pickerAreaBorderRadius: const BorderRadius.all(
+                            Radius.circular(15),
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 40),
                     Row(
                       children: [
                         Expanded(
@@ -217,6 +192,9 @@ class _PerfilPageState extends State<PerfilPage> {
                               foregroundColor: Colors.white70,
                               side: const BorderSide(color: Colors.white24),
                               padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             onPressed: () {
                               _firestore
@@ -235,6 +213,10 @@ class _PerfilPageState extends State<PerfilPage> {
                               backgroundColor: botaoVermelho,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
                             ),
                             onPressed: () {
                               String hexString =
@@ -245,7 +227,10 @@ class _PerfilPageState extends State<PerfilPage> {
                                   .update({'cor_hex': hexString});
                               Navigator.pop(context);
                             },
-                            child: const Text("Salvar Cor"),
+                            child: const Text(
+                              "Salvar Estilo",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                       ],
@@ -260,17 +245,99 @@ class _PerfilPageState extends State<PerfilPage> {
     );
   }
 
-  Widget _buildModalLabel(String text) => Align(
-    alignment: Alignment.centerLeft,
-    child: Text(
-      text.toUpperCase(),
-      style: const TextStyle(
-        color: Colors.white38,
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
+  Widget _buildGaleriaButton() {
+    return GestureDetector(
+      onTap: () async {
+        Navigator.pop(context);
+        await _escolherFotoGaleria();
+      },
+      child: Container(
+        margin: const EdgeInsets.only(right: 15),
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white10, width: 2),
+        ),
+        child: const CircleAvatar(
+          radius: 38,
+          backgroundColor: Color(0xFF3A0A0A),
+          child: Icon(
+            Icons.add_photo_alternate,
+            color: Colors.white70,
+            size: 30,
+          ),
+        ),
       ),
-    ),
-  );
+    );
+  }
+
+  Widget _buildModalLabel(String text) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        text.toUpperCase(),
+        style: const TextStyle(
+          color: Colors.white38,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  // --- LÓGICA DO GRÁFICO (PROCESSAMENTO REAL) ---
+
+  Future<List<double>> _processarTarefas(List<dynamic> tarefasIds) async {
+    DateTime agora = DateTime.now();
+    DateTime hojeMeiaNoite = DateTime(agora.year, agora.month, agora.day);
+    DateTime inicioFiltro = hojeMeiaNoite.subtract(const Duration(days: 29));
+
+    Map<String, double> minutosPorDia = {};
+    for (int i = 0; i < 30; i++) {
+      String dataFormatada = DateFormat(
+        'yyyy-MM-dd',
+      ).format(inicioFiltro.add(Duration(days: i)));
+      minutosPorDia[dataFormatada] = 0.0;
+    }
+
+    if (tarefasIds.isEmpty) return minutosPorDia.values.toList();
+
+    try {
+      // Busca todas as tarefas que pertencem a este usuário nos últimos 30 dias
+      // Usamos collectionGroup para vasculhar as subcoleções 'tarefas' dentro de qualquer grupo
+      QuerySnapshot query = await _firestore
+          .collectionGroup('tarefas')
+          .where('criador_id', isEqualTo: user?.uid)
+          .where('data_criacao', isGreaterThanOrEqualTo: inicioFiltro)
+          .get();
+
+      for (var doc in query.docs) {
+        // Verifica se o ID do documento encontrado está na lista de tarefas_concluidas do usuário
+        if (tarefasIds.contains(doc.id)) {
+          var data = doc.data() as Map<String, dynamic>;
+          Timestamp? ts = data['data_criacao'] as Timestamp?;
+
+          if (ts != null) {
+            DateTime dataCriacao = ts.toDate().toLocal();
+            String diaFormatado = DateFormat('yyyy-MM-dd').format(dataCriacao);
+
+            if (minutosPorDia.containsKey(diaFormatado)) {
+              // Soma os minutos. Garantimos a conversão para double
+              double valorMinutos =
+                  double.tryParse(data['minutos'].toString()) ?? 0.0;
+              minutosPorDia[diaFormatado] =
+                  minutosPorDia[diaFormatado]! + valorMinutos;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Erro ao processar gráfico: $e");
+    }
+
+    return minutosPorDia.values.toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -279,14 +346,15 @@ class _PerfilPageState extends State<PerfilPage> {
       body: StreamBuilder<DocumentSnapshot>(
         stream: _firestore.collection('usuarios').doc(user!.uid).snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (!snapshot.hasData)
             return const Center(child: CircularProgressIndicator());
-          }
+
           var dados = snapshot.data!.data() as Map<String, dynamic>;
           String? fotoUrl = dados['url_perfil'];
           String corHex = dados['cor_hex'] ?? "#444444";
           String nome = dados['nome_exibicao'] ?? "Usuário";
           Color corDinamica = _hexToColor(corHex);
+          List<dynamic> tarefasIds = dados['tarefas_concluidas'] ?? [];
 
           if (!_isEditing) {
             _nomeController.text = nome;
@@ -302,13 +370,8 @@ class _PerfilPageState extends State<PerfilPage> {
                     alignment: Alignment.center,
                     clipBehavior: Clip.none,
                     children: [
-                      // Banner de fundo
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
+                      Positioned.fill(
                         child: Container(
-                          height: 200,
                           decoration: BoxDecoration(
                             color: corDinamica,
                             image: (fotoUrl != null && fotoUrl.isNotEmpty)
@@ -335,42 +398,33 @@ class _PerfilPageState extends State<PerfilPage> {
                           ),
                         ),
                       ),
-
-                      // Avatar Flutuante Clicável
                       Positioned(
                         bottom: 0,
-                        child: InkWell(
+                        child: GestureDetector(
                           onTap: () => _mostrarSeletorCustomizado(corDinamica),
-                          borderRadius: BorderRadius.circular(60),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
+                          child: CircleAvatar(
+                            radius: 55,
+                            backgroundColor: Colors.white,
                             child: CircleAvatar(
-                              radius: 55,
-                              backgroundColor: Colors.white,
-                              child: CircleAvatar(
-                                radius: 52,
-                                backgroundColor: corDinamica,
-                                backgroundImage: _obterProvedorDeImagem(
-                                  fotoUrl,
-                                ),
-                                child: _isUploadingAvatar
-                                    // Animação de carregando enquanto sobe a foto!
-                                    ? const CircularProgressIndicator(
+                              radius: 52,
+                              backgroundColor: corDinamica,
+                              backgroundImage: _obterProvedorDeImagem(fotoUrl),
+                              child: _isUploadingAvatar
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
+                                  : (fotoUrl == null || fotoUrl.isEmpty)
+                                  ? Text(
+                                      nome.isNotEmpty
+                                          ? nome[0].toUpperCase()
+                                          : "?",
+                                      style: const TextStyle(
+                                        fontSize: 45,
                                         color: Colors.white,
-                                      )
-                                    : (fotoUrl == null || fotoUrl.isEmpty)
-                                    ? Text(
-                                        nome.isNotEmpty
-                                            ? nome[0].toUpperCase()
-                                            : "?",
-                                        style: const TextStyle(
-                                          fontSize: 45,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      )
-                                    : null,
-                              ),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  : null,
                             ),
                           ),
                         ),
@@ -389,6 +443,11 @@ class _PerfilPageState extends State<PerfilPage> {
                             color: Colors.white,
                             fontSize: 22,
                           ),
+                          decoration: const InputDecoration(
+                            enabledBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.red),
+                            ),
+                          ),
                         ),
                       )
                     : Text(
@@ -399,6 +458,7 @@ class _PerfilPageState extends State<PerfilPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+
                 const SizedBox(height: 30),
                 _buildSectionTitle("Biografia"),
                 _buildContainerBox(
@@ -416,10 +476,14 @@ class _PerfilPageState extends State<PerfilPage> {
                     ),
                   ),
                 ),
+
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   child: _isEditing
                       ? ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: botaoVermelho,
+                          ),
                           onPressed: () async {
                             await _firestore
                                 .collection('usuarios')
@@ -433,12 +497,16 @@ class _PerfilPageState extends State<PerfilPage> {
                           child: const Text("Salvar Alterações"),
                         )
                       : OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                          ),
                           onPressed: () => setState(() => _isEditing = true),
                           child: const Text("Editar Perfil"),
                         ),
                 ),
+
                 _buildSectionTitle("Atividade (Últimos 30 dias)"),
-                _buildGraficoMensal(corDinamica),
+                _buildGraficoMensal(corDinamica, tarefasIds),
                 const SizedBox(height: 50),
               ],
             ),
@@ -475,79 +543,77 @@ class _PerfilPageState extends State<PerfilPage> {
         child: child,
       );
 
-  Widget _buildGraficoMensal(Color corBarras) {
-    final List<double> mockData = [
-      0.3,
-      0.1,
-      0.5,
-      0.2,
-      0.6,
-      0.8,
-      0.4,
-      0.2,
-      0.5,
-      0.7,
-      0.1,
-      0.4,
-      0.9,
-      1.0,
-      0.2,
-      0.3,
-      0.5,
-      0.6,
-      0.1,
-      0.4,
-      0.7,
-      0.2,
-      0.5,
-      0.8,
-      0.3,
-      0.4,
-      0.6,
-      0.2,
-      0.3,
-      0.1,
-    ];
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(15),
-      height: 220,
-      decoration: BoxDecoration(
-        color: figmaInputFill,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Column(
-        children: [
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: mockData
-                  .map(
-                    (v) => Container(
-                      width: 6,
-                      height: v * 150,
-                      decoration: BoxDecoration(
-                        color: corBarras,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  )
-                  .toList(),
+  Widget _buildGraficoMensal(Color corBarras, List<dynamic> tarefasIds) {
+    return FutureBuilder<List<double>>(
+      future: _processarTarefas(tarefasIds),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            height: 220,
+            decoration: BoxDecoration(
+              color: figmaInputFill,
+              borderRadius: BorderRadius.circular(15),
             ),
+            child: const Center(
+              child: CircularProgressIndicator(color: Colors.red),
+            ),
+          );
+        }
+
+        List<double> valores = snapshot.data ?? List.filled(30, 0.0);
+        double maxMinutos = valores.reduce((a, b) => a > b ? a : b);
+        if (maxMinutos == 0) maxMinutos = 1.0;
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.all(15),
+          height: 220,
+          decoration: BoxDecoration(
+            color: figmaInputFill,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.white10),
           ),
-          const Divider(color: Colors.white10),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
             children: [
-              Text("1", style: TextStyle(color: Colors.white38, fontSize: 10)),
-              Text("15", style: TextStyle(color: Colors.white38, fontSize: 10)),
-              Text("30", style: TextStyle(color: Colors.white38, fontSize: 10)),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: valores.map((v) {
+                    double altura = (v / maxMinutos) * 150;
+                    return Tooltip(
+                      message: "${v.toInt()} min",
+                      child: Container(
+                        width: 6,
+                        height: altura > 0 ? altura : 2,
+                        decoration: BoxDecoration(
+                          color: v > 0 ? corBarras : Colors.white10,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const Divider(color: Colors.white10),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "30 dias atrás",
+                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                  ),
+                  Text(
+                    "Hoje",
+                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                  ),
+                ],
+              ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
