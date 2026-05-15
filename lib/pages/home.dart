@@ -8,6 +8,7 @@ import 'chats_recentes.dart';
 import 'grupo_page.dart';
 import 'perfil.dart';
 import 'config_page.dart';
+import 'explorar_grupos.dart'; // <-- IMPORT DA PÁGINA NOVA!
 
 class HomePage extends StatefulWidget {
   final bool isDark;
@@ -20,8 +21,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late bool isDark;
-  String queryPesquisa = ""; // Variável para controlar a pesquisa
-  final user = FirebaseAuth.instance.currentUser; // Usuário atual
+  final user = FirebaseAuth.instance.currentUser;
 
   ImageProvider? _obterImagem(String? url) {
     if (url == null || url.isEmpty) return null;
@@ -43,65 +43,6 @@ class _HomePageState extends State<HomePage> {
   Color get pillBg =>
       isDark ? const Color(0xFF333333) : const Color(0xFFB0B0B0);
 
-  // --- NOVA FUNÇÃO: ENTRAR NO GRUPO ---
-  Future<void> _entrarNoGrupo(String grupoId) async {
-    if (user == null) return;
-
-    try {
-      // 1. Busca os dados do usuário para colocar no ranking do grupo
-      var userDoc = await FirebaseFirestore.instance
-          .collection('usuarios')
-          .doc(user!.uid)
-          .get();
-      String nomeExibicao = "Usuário";
-      String fotoUrl = "";
-
-      if (userDoc.exists) {
-        var dados = userDoc.data() as Map<String, dynamic>;
-        nomeExibicao = dados['nome_exibicao'] ?? dados['nome'] ?? "Usuário";
-        fotoUrl = dados['url_perfil'] ?? "";
-      }
-
-      // 2. Adiciona o usuário na subcoleção 'membros' do grupo
-      await FirebaseFirestore.instance
-          .collection('grupos')
-          .doc(grupoId)
-          .collection('membros')
-          .doc(user!.uid)
-          .set({
-            'nome': nomeExibicao,
-            'fotoPerfil': fotoUrl,
-            'pontosSemanais': 0,
-            'pontosTotais': 0,
-            'atividadesMaioresSemanais': 0,
-            'atividadesMaioresTotais': 0,
-            'cargo': 'membro',
-            'data_entrada': FieldValue.serverTimestamp(),
-          });
-
-      // 3. Atualiza o array 'membros_ids' no documento do grupo para ele aparecer na barra lateral
-      await FirebaseFirestore.instance.collection('grupos').doc(grupoId).update(
-        {
-          'membros_ids': FieldValue.arrayUnion([user!.uid]),
-        },
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Você entrou no grupo com sucesso!"),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Erro ao entrar no grupo."),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -109,7 +50,7 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: Row(
           children: [
-            // 🔹 ÁREA PRINCIPAL (ESQUERDA) - EXPLORAR GRUPOS
+            // 🔹 ÁREA PRINCIPAL (ESQUERDA)
             Expanded(
               child: Stack(
                 children: [
@@ -121,7 +62,6 @@ class _HomePageState extends State<HomePage> {
                         child: Row(
                           children: [
                             const SizedBox(height: 50),
-
                             // ÍCONE DE PERFIL DINÂMICO
                             StreamBuilder<DocumentSnapshot>(
                               stream: FirebaseFirestore.instance
@@ -186,89 +126,103 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
 
-                      // TÍTULO "EXPLORAR" E BARRA DE PESQUISA
+                      // BARRA DE PESQUISA (ABRE A TELA EXPLORAR GRUPOS)
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ExplorarGruposPage(isDark: isDark),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 15,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: pillBg,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.search, color: Colors.grey),
+                              const SizedBox(width: 10),
+                              Text(
+                                "Encontrar novos grupos...",
+                                style: TextStyle(
+                                  color: Colors.grey.shade400,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+
+                      // TÍTULO "MINHAS ATIVIDADES RECENTES"
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Text(
-                          "Explorar Grupos",
+                          "Atividades Recentes",
                           style: TextStyle(
                             color: textMain,
-                            fontSize: 26,
+                            fontSize: 24,
                             fontFamily: 'Comic Sans MS',
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                       const SizedBox(height: 15),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: TextField(
-                          style: TextStyle(color: textMain),
-                          onChanged: (valor) {
-                            setState(() {
-                              queryPesquisa = valor;
-                            });
-                          },
-                          decoration: InputDecoration(
-                            hintText: "Buscar por nome...",
-                            hintStyle: const TextStyle(color: Colors.grey),
-                            prefixIcon: const Icon(
-                              Icons.search,
-                              color: Colors.grey,
-                            ),
-                            filled: true,
-                            fillColor: pillBg,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 0,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
 
-                      // 📋 LISTA DE GRUPOS (EXPLORAR)
+                      // 📋 LISTA DE TAREFAS RECENTES DO USUÁRIO
                       Expanded(
                         child: StreamBuilder<QuerySnapshot>(
-                          stream: queryPesquisa.isEmpty
-                              ? FirebaseFirestore.instance
-                                    .collection('grupos')
-                                    .orderBy(
-                                      'data_criacao',
-                                      descending: false,
-                                    ) // Se não pesquisar, mostra os mais antigos/sugeridos
-                                    .limit(30)
-                                    .snapshots()
-                              : FirebaseFirestore.instance
-                                    .collection('grupos')
-                                    .where(
-                                      'nome',
-                                      isGreaterThanOrEqualTo: queryPesquisa,
-                                    )
-                                    .where(
-                                      'nome',
-                                      isLessThan: queryPesquisa + 'z',
-                                    )
-                                    .snapshots(),
+                          stream: FirebaseFirestore.instance
+                              .collectionGroup('tarefas')
+                              .where('criador_id', isEqualTo: user?.uid)
+                              .orderBy('data_criacao', descending: true)
+                              .limit(15)
+                              .snapshots(),
                           builder: (context, snapshot) {
+                            // AQUI ESTÁ A MÁGICA: Vai mostrar o erro e o link na tela!
+                            if (snapshot.hasError) {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20.0),
+                                  child: SelectableText(
+                                    "Falta criar o Índice! Copie este link e cole no navegador:\n\n${snapshot.error}",
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 14,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              );
+                            }
+
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting)
                               return const Center(
                                 child: CircularProgressIndicator(),
                               );
+
                             if (!snapshot.hasData ||
-                                snapshot.data!.docs.isEmpty)
+                                snapshot.data!.docs.isEmpty) {
                               return Center(
                                 child: Text(
-                                  "Nenhum grupo encontrado.",
+                                  "Você ainda não registrou nenhuma atividade.",
                                   style: TextStyle(color: textMain),
                                 ),
                               );
+                            }
 
-                            var gruposDescobrir = snapshot.data!.docs;
+                            var tarefas = snapshot.data!.docs;
 
                             return ListView.builder(
                               padding: const EdgeInsets.only(
@@ -276,44 +230,33 @@ class _HomePageState extends State<HomePage> {
                                 right: 20,
                                 bottom: 80,
                               ),
-                              itemCount: gruposDescobrir.length,
+                              itemCount: tarefas.length,
                               itemBuilder: (context, index) {
-                                var dados =
-                                    gruposDescobrir[index].data()
+                                var tarefa =
+                                    tarefas[index].data()
                                         as Map<String, dynamic>;
-                                String idDoGrupo = gruposDescobrir[index].id;
-                                String nomeDoGrupo =
-                                    dados['nome'] ?? "Sem nome";
-                                List membrosIds = dados['membros_ids'] ?? [];
-                                int qtdMembros = membrosIds.length;
-
-                                // Verifica se o usuário atual já está neste grupo
-                                bool jaParticipa =
-                                    user != null &&
-                                    membrosIds.contains(user!.uid);
+                                String acao = tarefa['acao'] ?? "Atividade";
+                                int minutos = tarefa['minutos'] ?? 0;
+                                String tipo = tarefa['tipotarefa'] ?? "Comum";
 
                                 return Container(
-                                  margin: const EdgeInsets.only(bottom: 15),
+                                  margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(15),
                                   decoration: BoxDecoration(
                                     color: pillBg,
-                                    borderRadius: BorderRadius.circular(20),
+                                    borderRadius: BorderRadius.circular(15),
                                   ),
                                   child: Row(
                                     children: [
                                       CircleAvatar(
-                                        backgroundColor:
-                                            Colors.greenAccent[700],
-                                        radius: 25,
-                                        child: Text(
-                                          nomeDoGrupo.isNotEmpty
-                                              ? nomeDoGrupo[0].toUpperCase()
-                                              : "?",
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                        backgroundColor: tipo == "Tarefa Maior"
+                                            ? Colors.amber
+                                            : Colors.blueAccent,
+                                        child: Icon(
+                                          tipo == "Tarefa Maior"
+                                              ? Icons.workspace_premium
+                                              : Icons.check,
+                                          color: Colors.white,
                                         ),
                                       ),
                                       const SizedBox(width: 15),
@@ -323,16 +266,16 @@ class _HomePageState extends State<HomePage> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              nomeDoGrupo,
+                                              acao,
                                               style: TextStyle(
                                                 color: textMain,
-                                                fontSize: 18,
+                                                fontSize: 16,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                             Text(
-                                              "$qtdMembros membro(s)",
+                                              "$minutos minutos investidos",
                                               style: const TextStyle(
                                                 color: Colors.grey,
                                                 fontSize: 13,
@@ -341,43 +284,6 @@ class _HomePageState extends State<HomePage> {
                                           ],
                                         ),
                                       ),
-                                      const SizedBox(width: 10),
-
-                                      // BOTÃO DE ENTRAR OU AVISO "JÁ PARTICIPA"
-                                      jaParticipa
-                                          ? const Text(
-                                              "Participando",
-                                              style: TextStyle(
-                                                color: Colors.green,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 12,
-                                              ),
-                                            )
-                                          : ElevatedButton(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: isDark
-                                                    ? Colors.red[700]
-                                                    : Colors.green,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                ),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 15,
-                                                      vertical: 0,
-                                                    ),
-                                              ),
-                                              onPressed: () =>
-                                                  _entrarNoGrupo(idDoGrupo),
-                                              child: const Text(
-                                                "Entrar",
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
                                     ],
                                   ),
                                 );
@@ -411,7 +317,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // 🔹 SIDEBAR (DIREITA) - MEUS GRUPOS
+            // 🔹 SIDEBAR (DIREITA) - MEUS GRUPOS MANTIDA IGUAL
             Container(
               width: 70,
               decoration: BoxDecoration(
@@ -444,11 +350,8 @@ class _HomePageState extends State<HomePage> {
                     child: Divider(color: Colors.white54, thickness: 1),
                   ),
                   const SizedBox(height: 10),
-
-                  // 📋 LISTA DOS MEUS GRUPOS INDIVIDUAIS
                   Expanded(
                     child: StreamBuilder<QuerySnapshot>(
-                      // A MÁGICA: Só puxa grupos onde o seu UID está na lista 'membros_ids'
                       stream: FirebaseFirestore.instance
                           .collection('grupos')
                           .where('membros_ids', arrayContains: user?.uid ?? '')
@@ -458,9 +361,7 @@ class _HomePageState extends State<HomePage> {
                           return const Center(
                             child: CircularProgressIndicator(),
                           );
-
                         var meusGrupos = snapshot.data!.docs;
-
                         return ListView.builder(
                           itemCount: meusGrupos.length,
                           itemBuilder: (context, index) {
@@ -469,7 +370,6 @@ class _HomePageState extends State<HomePage> {
                                     as Map<String, dynamic>;
                             String idDoGrupo = meusGrupos[index].id;
                             String nomeDoGrupo = dados['nome'] ?? "Sem nome";
-
                             return GestureDetector(
                               onTap: () {
                                 Navigator.push(
@@ -490,8 +390,6 @@ class _HomePageState extends State<HomePage> {
                       },
                     ),
                   ),
-
-                  // Ícone de Mensagem
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
