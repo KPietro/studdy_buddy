@@ -4,8 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart'; // <-- Adicionado para ler o tema
-import '../controllers/settings_controller.dart'; // <-- Adicionado para ler o tema
 import '../controllers/imagem_controller.dart';
 
 class PerfilPage extends StatefulWidget {
@@ -24,6 +22,8 @@ class _PerfilPageState extends State<PerfilPage> {
   bool _isEditing = false;
   bool _isUploadingAvatar = false;
 
+  final Color figmaVinhoEscuro = const Color(0xFF1D0000);
+  final Color figmaInputFill = const Color(0xFF2D0505);
   final Color botaoVermelho = const Color(0xFFDA2B2B);
 
   // --- LÓGICA DE IMAGEM ---
@@ -56,19 +56,14 @@ class _PerfilPageState extends State<PerfilPage> {
     }
   }
 
-  // --- SELETOR DE ESTILO REFORMULADO ---
+  // --- SELETOR DE ESTILO ---
 
-  void _mostrarSeletorCustomizado(Color corAtual, bool isDark) {
+  void _mostrarSeletorCustomizado(Color corAtual) {
     Color corSelecionada = corAtual;
-
-    // Cores do modal baseadas no tema
-    Color modalBg = isDark ? const Color(0xFF1D0000) : const Color(0xFFEAFaf1);
-    Color modalText = isDark ? Colors.white : Colors.black87;
-    Color modalContainer = isDark ? const Color(0xFF2D0505) : Colors.white;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: modalBg,
+      backgroundColor: figmaVinhoEscuro,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
@@ -91,21 +86,21 @@ class _PerfilPageState extends State<PerfilPage> {
                       width: 40,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.white24 : Colors.black12,
+                        color: Colors.white24,
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                     const SizedBox(height: 25),
-                    Text(
+                    const Text(
                       "Personalizar Estilo",
                       style: TextStyle(
-                        color: modalText,
+                        color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 30),
-                    _buildModalLabel("Avatar ou Galeria", isDark),
+                    _buildModalLabel("Avatar ou Galeria"),
                     const SizedBox(height: 15),
                     SizedBox(
                       height: 90,
@@ -113,7 +108,7 @@ class _PerfilPageState extends State<PerfilPage> {
                         scrollDirection: Axis.horizontal,
                         itemCount: 5,
                         itemBuilder: (context, index) {
-                          if (index == 0) return _buildGaleriaButton(isDark);
+                          if (index == 0) return _buildGaleriaButton();
                           String path = "assets/Avatares/Avatar$index.png";
                           return GestureDetector(
                             onTap: () {
@@ -129,9 +124,7 @@ class _PerfilPageState extends State<PerfilPage> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: isDark
-                                      ? Colors.white10
-                                      : Colors.black12,
+                                  color: Colors.white10,
                                   width: 2,
                                 ),
                               ),
@@ -145,28 +138,34 @@ class _PerfilPageState extends State<PerfilPage> {
                       ),
                     ),
                     const SizedBox(height: 40),
-                    _buildModalLabel("Cor de Identidade", isDark),
+                    _buildModalLabel("Cor de Identidade"),
                     const SizedBox(height: 15),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: modalContainer,
+                        color: figmaInputFill,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isDark ? Colors.white10 : Colors.transparent,
-                        ),
-                        boxShadow: isDark
-                            ? null
-                            : [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
+                        border: Border.all(color: Colors.white10),
                       ),
                       child: Theme(
-                        data: isDark ? ThemeData.dark() : ThemeData.light(),
+                        data: ThemeData.dark().copyWith(
+                          inputDecorationTheme: InputDecorationTheme(
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 12,
+                            ),
+                            filled: true,
+                            fillColor: Colors.black26,
+                            labelStyle: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
                         child: ColorPicker(
                           pickerColor: corSelecionada,
                           onColorChanged: (Color color) {
@@ -190,10 +189,8 @@ class _PerfilPageState extends State<PerfilPage> {
                         Expanded(
                           child: OutlinedButton(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: modalText,
-                              side: BorderSide(
-                                color: isDark ? Colors.white24 : Colors.black26,
-                              ),
+                              foregroundColor: Colors.white70,
+                              side: const BorderSide(color: Colors.white24),
                               padding: const EdgeInsets.symmetric(vertical: 15),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -219,7 +216,7 @@ class _PerfilPageState extends State<PerfilPage> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              elevation: isDark ? 0 : 3,
+                              elevation: 0,
                             ),
                             onPressed: () {
                               String hexString =
@@ -248,7 +245,7 @@ class _PerfilPageState extends State<PerfilPage> {
     );
   }
 
-  Widget _buildGaleriaButton(bool isDark) {
+  Widget _buildGaleriaButton() {
     return GestureDetector(
       onTap: () async {
         Navigator.pop(context);
@@ -259,17 +256,14 @@ class _PerfilPageState extends State<PerfilPage> {
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(
-            color: isDark ? Colors.white10 : Colors.black12,
-            width: 2,
-          ),
+          border: Border.all(color: Colors.white10, width: 2),
         ),
-        child: CircleAvatar(
+        child: const CircleAvatar(
           radius: 38,
-          backgroundColor: isDark ? const Color(0xFF3A0A0A) : Colors.grey[200],
+          backgroundColor: Color(0xFF3A0A0A),
           child: Icon(
             Icons.add_photo_alternate,
-            color: isDark ? Colors.white70 : Colors.black54,
+            color: Colors.white70,
             size: 30,
           ),
         ),
@@ -277,24 +271,22 @@ class _PerfilPageState extends State<PerfilPage> {
     );
   }
 
-  Widget _buildModalLabel(String text, bool isDark) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        text.toUpperCase(),
-        style: TextStyle(
-          color: isDark ? Colors.white38 : Colors.black45,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
-        ),
+  Widget _buildModalLabel(String text) => Align(
+    alignment: Alignment.centerLeft,
+    child: Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        color: Colors.white38,
+        fontSize: 11,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.2,
       ),
-    );
-  }
+    ),
+  );
 
-  // --- LÓGICA DO GRÁFICO (PROCESSAMENTO REAL) ---
+  // --- LÓGICA DO GRÁFICO MENSAL ---
 
-  Future<List<double>> _processarTarefas(List<dynamic> tarefasIds) async {
+  Future<List<double>> _processarTarefas() async {
     DateTime agora = DateTime.now();
     DateTime hojeMeiaNoite = DateTime(agora.year, agora.month, agora.day);
     DateTime inicioFiltro = hojeMeiaNoite.subtract(const Duration(days: 29));
@@ -307,72 +299,67 @@ class _PerfilPageState extends State<PerfilPage> {
       minutosPorDia[dataFormatada] = 0.0;
     }
 
-    if (tarefasIds.isEmpty) return minutosPorDia.values.toList();
-
     try {
-      QuerySnapshot query = await _firestore
+      String? meuId = user?.uid;
+      if (meuId == null) return minutosPorDia.values.toList();
+
+      QuerySnapshot tarefasQuery = await _firestore
           .collectionGroup('tarefas')
-          .where('criador_id', isEqualTo: user?.uid)
-          .where('data_criacao', isGreaterThanOrEqualTo: inicioFiltro)
+          .where('criador_id', isEqualTo: meuId)
           .get();
 
-      for (var doc in query.docs) {
-        if (tarefasIds.contains(doc.id)) {
-          var data = doc.data() as Map<String, dynamic>;
-          Timestamp? ts = data['data_criacao'] as Timestamp?;
+      for (var doc in tarefasQuery.docs) {
+        var data = doc.data() as Map<String, dynamic>;
+        Timestamp? ts = data['data_criacao'] as Timestamp?;
 
-          if (ts != null) {
-            DateTime dataCriacao = ts.toDate().toLocal();
+        if (ts != null) {
+          DateTime dataCriacao = ts.toDate();
+
+          if (dataCriacao.isAfter(inicioFiltro) ||
+              dataCriacao.isAtSameMomentAs(inicioFiltro)) {
             String diaFormatado = DateFormat('yyyy-MM-dd').format(dataCriacao);
 
             if (minutosPorDia.containsKey(diaFormatado)) {
               double valorMinutos =
                   double.tryParse(data['minutos'].toString()) ?? 0.0;
               minutosPorDia[diaFormatado] =
-                  minutosPorDia[diaFormatado]! + valorMinutos;
+                  (minutosPorDia[diaFormatado] ?? 0.0) + valorMinutos;
             }
           }
         }
       }
     } catch (e) {
-      debugPrint("Erro ao processar gráfico: $e");
+      debugPrint("❌ [GRAFICO] Erro: $e");
     }
 
     return minutosPorDia.values.toList();
   }
 
+  // --- INTERFACE PRINCIPAL ---
+
   @override
   Widget build(BuildContext context) {
-    // Puxando o tema em tempo real
-    final isDark = Provider.of<SettingsController>(context).isDarkMode;
-
-    // Cores Dinâmicas do Tema Premium
-    final Color bgMain = isDark
-        ? const Color(0xFF1D0000)
-        : const Color(0xFFEAFaf1);
-    final Color containerBg = isDark ? const Color(0xFF2D0505) : Colors.white;
-    final Color textMain = isDark ? Colors.white : Colors.black87;
-    final Color textSec = isDark ? Colors.white70 : Colors.black54;
-    final Color dividerCor = isDark ? Colors.white10 : Colors.black12;
-    final List<BoxShadow>? shadowClara = isDark
-        ? null
-        : [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ];
-
     return Scaffold(
-      backgroundColor: bgMain,
+      backgroundColor: figmaVinhoEscuro,
       body: StreamBuilder<DocumentSnapshot>(
         stream: _firestore.collection('usuarios').doc(user!.uid).snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
-            return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.red),
+            );
+          }
 
-          var dados = snapshot.data!.data() as Map<String, dynamic>;
+          var dados = snapshot.data!.data() as Map<String, dynamic>?;
+          if (dados == null) {
+            return const Center(
+              child: Text(
+                "Usuário não encontrado",
+                style: TextStyle(color: Colors.white),
+              ),
+            );
+          }
+
           String? fotoUrl = dados['url_perfil'];
           String corHex = dados['cor_hex'] ?? "#444444";
           String nome = dados['nome_exibicao'] ?? "Usuário";
@@ -411,13 +398,11 @@ class _PerfilPageState extends State<PerfilPage> {
                         top: 40,
                         left: 20,
                         child: CircleAvatar(
-                          backgroundColor: isDark
-                              ? const Color(0xFFB30000)
-                              : Colors.white,
+                          backgroundColor: const Color(0xFFB30000),
                           child: IconButton(
-                            icon: Icon(
+                            icon: const Icon(
                               Icons.arrow_back,
-                              color: isDark ? Colors.black : Colors.black87,
+                              color: Colors.black,
                             ),
                             onPressed: () => Navigator.pop(context),
                           ),
@@ -426,40 +411,30 @@ class _PerfilPageState extends State<PerfilPage> {
                       Positioned(
                         bottom: 0,
                         child: GestureDetector(
-                          onTap: () =>
-                              _mostrarSeletorCustomizado(corDinamica, isDark),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow:
-                                  shadowClara, // Sombra no avatar principal
-                            ),
+                          onTap: () => _mostrarSeletorCustomizado(corDinamica),
+                          child: CircleAvatar(
+                            radius: 55,
+                            backgroundColor: Colors.white,
                             child: CircleAvatar(
-                              radius: 55,
-                              backgroundColor: Colors.white,
-                              child: CircleAvatar(
-                                radius: 52,
-                                backgroundColor: corDinamica,
-                                backgroundImage: _obterProvedorDeImagem(
-                                  fotoUrl,
-                                ),
-                                child: _isUploadingAvatar
-                                    ? const CircularProgressIndicator(
+                              radius: 52,
+                              backgroundColor: corDinamica,
+                              backgroundImage: _obterProvedorDeImagem(fotoUrl),
+                              child: _isUploadingAvatar
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
+                                  : (fotoUrl == null || fotoUrl.isEmpty)
+                                  ? Text(
+                                      nome.isNotEmpty
+                                          ? nome[0].toUpperCase()
+                                          : "?",
+                                      style: const TextStyle(
+                                        fontSize: 45,
                                         color: Colors.white,
-                                      )
-                                    : (fotoUrl == null || fotoUrl.isEmpty)
-                                    ? Text(
-                                        nome.isNotEmpty
-                                            ? nome[0].toUpperCase()
-                                            : "?",
-                                        style: const TextStyle(
-                                          fontSize: 45,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      )
-                                    : null,
-                              ),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  : null,
                             ),
                           ),
                         ),
@@ -474,7 +449,10 @@ class _PerfilPageState extends State<PerfilPage> {
                         child: TextField(
                           controller: _nomeController,
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: textMain, fontSize: 22),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                          ),
                           decoration: const InputDecoration(
                             enabledBorder: UnderlineInputBorder(
                               borderSide: BorderSide(color: Colors.red),
@@ -484,25 +462,24 @@ class _PerfilPageState extends State<PerfilPage> {
                       )
                     : Text(
                         nome,
-                        style: TextStyle(
-                          color: textMain,
+                        style: const TextStyle(
+                          color: Colors.white,
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
 
                 const SizedBox(height: 30),
-                _buildSectionTitle("Biografia", textMain),
+                _buildSectionTitle("Biografia"),
                 _buildContainerBox(
                   isEditing: _isEditing,
-                  isDark: isDark,
-                  containerBg: containerBg,
-                  shadowClara: shadowClara,
                   child: TextField(
                     controller: _bioController,
                     enabled: _isEditing,
                     maxLines: 3,
-                    style: TextStyle(color: _isEditing ? textMain : textSec),
+                    style: TextStyle(
+                      color: _isEditing ? Colors.white : Colors.white70,
+                    ),
                     decoration: const InputDecoration(
                       border: InputBorder.none,
                       hintText: "Escreva algo...",
@@ -516,7 +493,6 @@ class _PerfilPageState extends State<PerfilPage> {
                       ? ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: botaoVermelho,
-                            elevation: isDark ? 0 : 3,
                           ),
                           onPressed: () async {
                             await _firestore
@@ -528,30 +504,19 @@ class _PerfilPageState extends State<PerfilPage> {
                                 });
                             setState(() => _isEditing = false);
                           },
-                          child: const Text(
-                            "Salvar Alterações",
-                            style: TextStyle(color: Colors.white),
-                          ),
+                          child: const Text("Salvar Alterações"),
                         )
                       : OutlinedButton(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: textMain,
-                            side: BorderSide(color: dividerCor),
+                            foregroundColor: Colors.white,
                           ),
                           onPressed: () => setState(() => _isEditing = true),
                           child: const Text("Editar Perfil"),
                         ),
                 ),
 
-                _buildSectionTitle("Atividade (Últimos 30 dias)", textMain),
-                _buildGraficoMensal(
-                  corDinamica,
-                  tarefasIds,
-                  containerBg,
-                  dividerCor,
-                  textSec,
-                  shadowClara,
-                ),
+                _buildSectionTitle("Atividade (Últimos 30 dias)"),
+                _buildGraficoMensal(corDinamica, tarefasIds.hashCode),
                 const SizedBox(height: 50),
               ],
             ),
@@ -561,14 +526,14 @@ class _PerfilPageState extends State<PerfilPage> {
     );
   }
 
-  Widget _buildSectionTitle(String title, Color textColor) => Padding(
+  Widget _buildSectionTitle(String title) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
     child: Align(
       alignment: Alignment.centerLeft,
       child: Text(
         title,
-        style: TextStyle(
-          color: textColor,
+        style: const TextStyle(
+          color: Colors.white,
           fontSize: 16,
           fontWeight: FontWeight.bold,
         ),
@@ -576,49 +541,32 @@ class _PerfilPageState extends State<PerfilPage> {
     ),
   );
 
-  Widget _buildContainerBox({
-    required Widget child,
-    required bool isEditing,
-    required bool isDark,
-    required Color containerBg,
-    required List<BoxShadow>? shadowClara,
-  }) => Container(
-    margin: const EdgeInsets.symmetric(horizontal: 20),
-    padding: const EdgeInsets.all(15),
-    decoration: BoxDecoration(
-      color: isEditing
-          ? (isDark ? const Color(0xFF3A0A0A) : Colors.red[50])
-          : containerBg,
-      borderRadius: BorderRadius.circular(15),
-      boxShadow: shadowClara,
-      border: Border.all(
-        color: isEditing
-            ? botaoVermelho
-            : (isDark ? Colors.white10 : Colors.transparent),
-      ),
-    ),
-    child: child,
-  );
+  Widget _buildContainerBox({required Widget child, bool isEditing = false}) =>
+      Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: isEditing ? const Color(0xFF3A0A0A) : figmaInputFill,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: isEditing ? botaoVermelho : Colors.white10),
+        ),
+        child: child,
+      );
 
-  Widget _buildGraficoMensal(
-    Color corBarras,
-    List<dynamic> tarefasIds,
-    Color containerBg,
-    Color dividerCor,
-    Color textSec,
-    List<BoxShadow>? shadowClara,
-  ) {
+  // --- NOVO MÉTODO DO GRÁFICO REESTRUTURADO E ARRASTÁVEL ---
+
+  Widget _buildGraficoMensal(Color corBarras, int hashKey) {
     return FutureBuilder<List<double>>(
-      future: _processarTarefas(tarefasIds),
+      key: ValueKey(hashKey),
+      future: _processarTarefas(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 20),
-            height: 220,
+            height: 240,
             decoration: BoxDecoration(
-              color: containerBg,
+              color: figmaInputFill,
               borderRadius: BorderRadius.circular(15),
-              boxShadow: shadowClara,
             ),
             child: const Center(
               child: CircularProgressIndicator(color: Colors.red),
@@ -630,50 +578,92 @@ class _PerfilPageState extends State<PerfilPage> {
         double maxMinutos = valores.reduce((a, b) => a > b ? a : b);
         if (maxMinutos == 0) maxMinutos = 1.0;
 
+        // Reconstruindo a janela de tempo local para gerar os rótulos corretos sob as barras
+        DateTime agora = DateTime.now();
+        DateTime hojeMeiaNoite = DateTime(agora.year, agora.month, agora.day);
+        DateTime inicioFiltro = hojeMeiaNoite.subtract(
+          const Duration(days: 29),
+        );
+
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 20),
-          padding: const EdgeInsets.all(15),
-          height: 220,
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 5),
+          height:
+              240, // Aumentado ligeiramente para comportar os rótulos com folga
           decoration: BoxDecoration(
-            color: containerBg,
+            color: figmaInputFill,
             borderRadius: BorderRadius.circular(15),
-            boxShadow: shadowClara,
-            border: Border.all(color: dividerCor),
+            border: Border.all(color: Colors.white10),
           ),
-          child: Column(
-            children: [
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: valores.map((v) {
-                    double altura = (v / maxMinutos) * 150;
-                    return Tooltip(
-                      message: "${v.toInt()} min",
-                      child: Container(
-                        width: 6,
-                        height: altura > 0 ? altura : 2,
-                        decoration: BoxDecoration(
-                          color: v > 0 ? corBarras : dividerCor,
-                          borderRadius: BorderRadius.circular(2),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: valores.asMap().entries.map((entry) {
+                int idx = entry.key;
+                double v = entry.value;
+
+                // Calcula o dia específico para a label da barra atual
+                DateTime dataBarra = inicioFiltro.add(Duration(days: idx));
+                String labelDia = DateFormat('dd/MM').format(dataBarra);
+
+                // Define a altura máxima física da barra em 130px
+                double alturaCalculada = (v / maxMinutos) * 130;
+
+                // Destaca de forma negritada caso a barra mapeada represente o dia de hoje
+                bool ehHoje =
+                    dataBarra.day == agora.day &&
+                    dataBarra.month == agora.month;
+
+                return Container(
+                  width:
+                      48, // Largura fixa confortável por coluna para garantir a rolagem lateral perfeita
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      // Texto contendo a minutagem acima da barra física
+                      Text(
+                        v > 0 ? "${v.toInt()}m" : "-",
+                        style: TextStyle(
+                          color: v > 0 ? Colors.white : Colors.white24,
+                          fontSize: 10,
+                          fontWeight: v > 0
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              Divider(color: dividerCor),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "30 dias atrás",
-                    style: TextStyle(color: textSec, fontSize: 10),
+                      const SizedBox(height: 6),
+                      // Estrutura visual da barra
+                      Container(
+                        width:
+                            8, // Largura ideal da barra para visualização mobile
+                        height: alturaCalculada > 0 ? alturaCalculada : 2,
+                        decoration: BoxDecoration(
+                          color: v > 0 ? corBarras : Colors.white10,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Rótulo da data abaixo da barra física
+                      Text(
+                        labelDia,
+                        style: TextStyle(
+                          color: ehHoje
+                              ? corBarras
+                              : (v > 0 ? Colors.white70 : Colors.white38),
+                          fontSize: 9,
+                          fontWeight: ehHoje
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text("Hoje", style: TextStyle(color: textSec, fontSize: 10)),
-                ],
-              ),
-            ],
+                );
+              }).toList(),
+            ),
           ),
         );
       },
