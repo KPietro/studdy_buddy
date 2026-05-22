@@ -56,7 +56,7 @@ class _PerfilPageState extends State<PerfilPage> {
     }
   }
 
-  // --- SELETOR DE ESTILO REFORMULADO ---
+  // --- SELETOR DE ESTILO ---
 
   void _mostrarSeletorCustomizado(Color corAtual) {
     Color corSelecionada = corAtual;
@@ -271,24 +271,22 @@ class _PerfilPageState extends State<PerfilPage> {
     );
   }
 
-  Widget _buildModalLabel(String text) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        text.toUpperCase(),
-        style: const TextStyle(
-          color: Colors.white38,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
-        ),
+  Widget _buildModalLabel(String text) => Align(
+    alignment: Alignment.centerLeft,
+    child: Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        color: Colors.white38,
+        fontSize: 11,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.2,
       ),
-    );
-  }
+    ),
+  );
 
-  // --- LÓGICA DO GRÁFICO (PROCESSAMENTO REAL) ---
+  // --- LÓGICA DO GRÁFICO MENSAL ---
 
-  Future<List<double>> _processarTarefas(List<dynamic> tarefasIds) async {
+  Future<List<double>> _processarTarefas() async {
     DateTime agora = DateTime.now();
     DateTime hojeMeiaNoite = DateTime(agora.year, agora.month, agora.day);
     DateTime inicioFiltro = hojeMeiaNoite.subtract(const Duration(days: 29));
@@ -301,43 +299,43 @@ class _PerfilPageState extends State<PerfilPage> {
       minutosPorDia[dataFormatada] = 0.0;
     }
 
-    if (tarefasIds.isEmpty) return minutosPorDia.values.toList();
-
     try {
-      // Busca todas as tarefas que pertencem a este usuário nos últimos 30 dias
-      // Usamos collectionGroup para vasculhar as subcoleções 'tarefas' dentro de qualquer grupo
-      QuerySnapshot query = await _firestore
+      String? meuId = user?.uid;
+      if (meuId == null) return minutosPorDia.values.toList();
+
+      QuerySnapshot tarefasQuery = await _firestore
           .collectionGroup('tarefas')
-          .where('criador_id', isEqualTo: user?.uid)
-          .where('data_criacao', isGreaterThanOrEqualTo: inicioFiltro)
+          .where('criador_id', isEqualTo: meuId)
           .get();
 
-      for (var doc in query.docs) {
-        // Verifica se o ID do documento encontrado está na lista de tarefas_concluidas do usuário
-        if (tarefasIds.contains(doc.id)) {
-          var data = doc.data() as Map<String, dynamic>;
-          Timestamp? ts = data['data_criacao'] as Timestamp?;
+      for (var doc in tarefasQuery.docs) {
+        var data = doc.data() as Map<String, dynamic>;
+        Timestamp? ts = data['data_criacao'] as Timestamp?;
 
-          if (ts != null) {
-            DateTime dataCriacao = ts.toDate().toLocal();
+        if (ts != null) {
+          DateTime dataCriacao = ts.toDate();
+
+          if (dataCriacao.isAfter(inicioFiltro) ||
+              dataCriacao.isAtSameMomentAs(inicioFiltro)) {
             String diaFormatado = DateFormat('yyyy-MM-dd').format(dataCriacao);
 
             if (minutosPorDia.containsKey(diaFormatado)) {
-              // Soma os minutos. Garantimos a conversão para double
               double valorMinutos =
                   double.tryParse(data['minutos'].toString()) ?? 0.0;
               minutosPorDia[diaFormatado] =
-                  minutosPorDia[diaFormatado]! + valorMinutos;
+                  (minutosPorDia[diaFormatado] ?? 0.0) + valorMinutos;
             }
           }
         }
       }
     } catch (e) {
-      debugPrint("Erro ao processar gráfico: $e");
+      debugPrint("❌ [GRAFICO] Erro: $e");
     }
 
     return minutosPorDia.values.toList();
   }
+
+  // --- INTERFACE PRINCIPAL ---
 
   @override
   Widget build(BuildContext context) {
@@ -346,10 +344,22 @@ class _PerfilPageState extends State<PerfilPage> {
       body: StreamBuilder<DocumentSnapshot>(
         stream: _firestore.collection('usuarios').doc(user!.uid).snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
-            return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.red),
+            );
+          }
 
-          var dados = snapshot.data!.data() as Map<String, dynamic>;
+          var dados = snapshot.data!.data() as Map<String, dynamic>?;
+          if (dados == null) {
+            return const Center(
+              child: Text(
+                "Usuário não encontrado",
+                style: TextStyle(color: Colors.white),
+              ),
+            );
+          }
+
           String? fotoUrl = dados['url_perfil'];
           String corHex = dados['cor_hex'] ?? "#444444";
           String nome = dados['nome_exibicao'] ?? "Usuário";
@@ -506,7 +516,7 @@ class _PerfilPageState extends State<PerfilPage> {
                 ),
 
                 _buildSectionTitle("Atividade (Últimos 30 dias)"),
-                _buildGraficoMensal(corDinamica, tarefasIds),
+                _buildGraficoMensal(corDinamica, tarefasIds.hashCode),
                 const SizedBox(height: 50),
               ],
             ),
@@ -543,14 +553,17 @@ class _PerfilPageState extends State<PerfilPage> {
         child: child,
       );
 
-  Widget _buildGraficoMensal(Color corBarras, List<dynamic> tarefasIds) {
+  // --- NOVO MÉTODO DO GRÁFICO REESTRUTURADO E ARRASTÁVEL ---
+
+  Widget _buildGraficoMensal(Color corBarras, int hashKey) {
     return FutureBuilder<List<double>>(
-      future: _processarTarefas(tarefasIds),
+      key: ValueKey(hashKey),
+      future: _processarTarefas(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 20),
-            height: 220,
+            height: 240,
             decoration: BoxDecoration(
               color: figmaInputFill,
               borderRadius: BorderRadius.circular(15),
@@ -565,52 +578,92 @@ class _PerfilPageState extends State<PerfilPage> {
         double maxMinutos = valores.reduce((a, b) => a > b ? a : b);
         if (maxMinutos == 0) maxMinutos = 1.0;
 
+        // Reconstruindo a janela de tempo local para gerar os rótulos corretos sob as barras
+        DateTime agora = DateTime.now();
+        DateTime hojeMeiaNoite = DateTime(agora.year, agora.month, agora.day);
+        DateTime inicioFiltro = hojeMeiaNoite.subtract(
+          const Duration(days: 29),
+        );
+
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 20),
-          padding: const EdgeInsets.all(15),
-          height: 220,
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 5),
+          height:
+              240, // Aumentado ligeiramente para comportar os rótulos com folga
           decoration: BoxDecoration(
             color: figmaInputFill,
             borderRadius: BorderRadius.circular(15),
             border: Border.all(color: Colors.white10),
           ),
-          child: Column(
-            children: [
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: valores.map((v) {
-                    double altura = (v / maxMinutos) * 150;
-                    return Tooltip(
-                      message: "${v.toInt()} min",
-                      child: Container(
-                        width: 6,
-                        height: altura > 0 ? altura : 2,
-                        decoration: BoxDecoration(
-                          color: v > 0 ? corBarras : Colors.white10,
-                          borderRadius: BorderRadius.circular(2),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: valores.asMap().entries.map((entry) {
+                int idx = entry.key;
+                double v = entry.value;
+
+                // Calcula o dia específico para a label da barra atual
+                DateTime dataBarra = inicioFiltro.add(Duration(days: idx));
+                String labelDia = DateFormat('dd/MM').format(dataBarra);
+
+                // Define a altura máxima física da barra em 130px
+                double alturaCalculada = (v / maxMinutos) * 130;
+
+                // Destaca de forma negritada caso a barra mapeada represente o dia de hoje
+                bool ehHoje =
+                    dataBarra.day == agora.day &&
+                    dataBarra.month == agora.month;
+
+                return Container(
+                  width:
+                      48, // Largura fixa confortável por coluna para garantir a rolagem lateral perfeita
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      // Texto contendo a minutagem acima da barra física
+                      Text(
+                        v > 0 ? "${v.toInt()}m" : "-",
+                        style: TextStyle(
+                          color: v > 0 ? Colors.white : Colors.white24,
+                          fontSize: 10,
+                          fontWeight: v > 0
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const Divider(color: Colors.white10),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "30 dias atrás",
-                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                      const SizedBox(height: 6),
+                      // Estrutura visual da barra
+                      Container(
+                        width:
+                            8, // Largura ideal da barra para visualização mobile
+                        height: alturaCalculada > 0 ? alturaCalculada : 2,
+                        decoration: BoxDecoration(
+                          color: v > 0 ? corBarras : Colors.white10,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Rótulo da data abaixo da barra física
+                      Text(
+                        labelDia,
+                        style: TextStyle(
+                          color: ehHoje
+                              ? corBarras
+                              : (v > 0 ? Colors.white70 : Colors.white38),
+                          fontSize: 9,
+                          fontWeight: ehHoje
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    "Hoje",
-                    style: TextStyle(color: Colors.white38, fontSize: 10),
-                  ),
-                ],
-              ),
-            ],
+                );
+              }).toList(),
+            ),
           ),
         );
       },
