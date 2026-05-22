@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'ranking_total.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 
-
 class RankingSemanal extends StatefulWidget {
-  final String grupoId; // Recebe o ID do grupo atual
+  final String grupoId;
   const RankingSemanal({super.key, required this.grupoId});
 
   @override
@@ -14,13 +13,24 @@ class RankingSemanal extends StatefulWidget {
 
 class _RankingSemanalState extends State<RankingSemanal> {
   bool isTemaEscuro = true;
-  
+
   final Color bgEscuro = const Color(0xFF2B0505);
   final Color baseEscura = const Color(0xFF4A0000);
   final Color bgClaro = const Color(0xFFEAFaf1);
-  final Color baseClara = const Color(0xFF4CAF50);
+  final Color baseClara = const Color(0xFF388E3C); // Colors.green[700] ajustado
   final Color verdemeiescuro = const Color.fromRGBO(25, 170, 45, 1);
   final Color verdeNeon = const Color.fromARGB(255, 55, 255, 20);
+
+  // --- SOMBRA SUAVE ---
+  List<BoxShadow>? get shadowClara => isTemaEscuro
+      ? null
+      : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ];
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +40,6 @@ class _RankingSemanalState extends State<RankingSemanal> {
       backgroundColor: isDark ? bgEscuro : bgClaro,
       body: SafeArea(
         child: StreamBuilder<QuerySnapshot>(
-          // Busca os membros especificamente do grupo aberto, ordenados pela pontuação SEMANAL
           stream: FirebaseFirestore.instance
               .collection('grupos')
               .doc(widget.grupoId)
@@ -43,18 +52,16 @@ class _RankingSemanalState extends State<RankingSemanal> {
             }
 
             final List<Map<String, dynamic>> jogadores = [];
-            
+
             if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
               final docs = snapshot.data!.docs;
               for (int i = 0; i < docs.length; i++) {
                 jogadores.add({
                   "posicao": i + 1,
                   "nome": docs[i]['nome'] ?? "Sem Nome",
-                  // Pegando a pontuação semanal exata do banco
                   "pontos": docs[i]['pontosSemanais'] ?? 0,
-                  // Pegando as metas maiores semanais do banco
                   "atividades": docs[i]['atividadesMaioresSemanais'] ?? 0,
-                  "fotoPerfil": docs[i]['fotoPerfil'], 
+                  "fotoPerfil": docs[i]['fotoPerfil'],
                 });
               }
             }
@@ -67,10 +74,12 @@ class _RankingSemanalState extends State<RankingSemanal> {
                   Expanded(
                     child: Center(
                       child: Text(
-                        'Nenhum membro neste grupo.', 
-                        style: TextStyle(color: isDark ? Colors.white : Colors.black)
-                      )
-                    )
+                        'Nenhum membro neste grupo.',
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ),
                   )
                 else ...[
                   _buildPodio(isDark, jogadores),
@@ -87,7 +96,10 @@ class _RankingSemanalState extends State<RankingSemanal> {
         backgroundColor: verdeNeon,
         mini: true,
         onPressed: () => setState(() => isTemaEscuro = !isTemaEscuro),
-        child: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: Colors.black),
+        child: Icon(
+          isDark ? Icons.light_mode : Icons.dark_mode,
+          color: Colors.black,
+        ),
       ),
     );
   }
@@ -98,10 +110,13 @@ class _RankingSemanalState extends State<RankingSemanal> {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: const Color(0xFFB30000),
+            backgroundColor: isDark ? const Color(0xFFB30000) : Colors.white,
             radius: 20,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              icon: Icon(
+                Icons.arrow_back,
+                color: isDark ? Colors.black : Colors.black87,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -110,15 +125,19 @@ class _RankingSemanalState extends State<RankingSemanal> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  '  Ranking Semanal', 
+                  'Ranking Semanal',
                   style: TextStyle(
-                    fontSize: 26, 
-                    fontWeight: FontWeight.bold, 
-                    color: isDark ? Colors.white : Colors.black
-                  )
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
                 ),
                 const SizedBox(width: 10),
-                const Icon(Icons.emoji_events, color: Colors.deepOrange, size: 30),
+                const Icon(
+                  Icons.emoji_events,
+                  color: Colors.deepOrange,
+                  size: 30,
+                ),
               ],
             ),
           ),
@@ -150,7 +169,8 @@ class _RankingSemanalState extends State<RankingSemanal> {
     const double depth = 15.0;
     const double angle = 0.5;
     final double dy = depth * angle;
-    bool temFoto = j["fotoPerfil"] != null && j["fotoPerfil"].toString().isNotEmpty;
+    bool temFoto =
+        j["fotoPerfil"] != null && j["fotoPerfil"].toString().isNotEmpty;
 
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0.0, end: alturaAlvo),
@@ -162,9 +182,11 @@ class _RankingSemanalState extends State<RankingSemanal> {
           children: [
             CircleAvatar(
               radius: 22,
-              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[400],
+              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
               backgroundImage: temFoto ? NetworkImage(j["fotoPerfil"]) : null,
-              child: !temFoto ? const Icon(Icons.person, color: Colors.white) : null,
+              child: !temFoto
+                  ? const Icon(Icons.person, color: Colors.white)
+                  : null,
             ),
             const SizedBox(height: 10),
             CustomPaint(
@@ -188,15 +210,19 @@ class _RankingSemanalState extends State<RankingSemanal> {
       itemCount: jogadores.length,
       itemBuilder: (context, index) {
         final j = jogadores[index];
-        bool temFoto = j["fotoPerfil"] != null && j["fotoPerfil"].toString().isNotEmpty;
+        bool temFoto =
+            j["fotoPerfil"] != null && j["fotoPerfil"].toString().isNotEmpty;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 7),
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: isDark ? Colors.black : Colors.white,
-            border: Border.all(color: Colors.white24),
-            borderRadius: BorderRadius.circular(3),
+            border: Border.all(
+              color: isDark ? Colors.white24 : Colors.transparent,
+            ),
+            boxShadow: shadowClara, // Sombrinha nos itens da lista
+            borderRadius: BorderRadius.circular(5),
           ),
           child: Row(
             children: [
@@ -204,35 +230,74 @@ class _RankingSemanalState extends State<RankingSemanal> {
                 width: 30,
                 child: j["posicao"] <= 3
                     ? Icon(
-                        Icons.military_tech, 
-                        color: j["posicao"] == 1 ? Colors.yellow : (j["posicao"] == 2 ? Colors.grey : Colors.brown)
+                        Icons.military_tech,
+                        color: j["posicao"] == 1
+                            ? Colors.yellow
+                            : (j["posicao"] == 2 ? Colors.grey : Colors.brown),
                       )
                     : Text(
-                        '#${j["posicao"]}', 
-                        style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold)
+                        '#${j["posicao"]}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
               CircleAvatar(
                 radius: 12,
+                backgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
                 backgroundImage: temFoto ? NetworkImage(j["fotoPerfil"]) : null,
-                child: !temFoto ? const Icon(Icons.person, size: 15, color: Colors.white) : null,
+                child: !temFoto
+                    ? const Icon(Icons.person, size: 15, color: Colors.white)
+                    : null,
               ),
               const SizedBox(width: 10),
-              Expanded(child: Text(j["nome"], style: TextStyle(color: isDark ? Colors.white : Colors.black))),
-              
+              Expanded(
+                child: Text(
+                  j["nome"],
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ),
+
               // Pontos
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(color: verdemeiescuro, borderRadius: BorderRadius.circular(3)),
-                child: Text('PTS   ${j["pontos"]}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: verdemeiescuro,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: Text(
+                  'PTS   ${j["pontos"]}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
               ),
-              
+
               // Quantidade de Metas Maiores
               Container(
                 margin: const EdgeInsets.only(left: 5),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: const Color.fromRGBO(199, 0, 0, 1), borderRadius: BorderRadius.circular(3)),
-                child: Text('QTT:${j["atividades"]}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                decoration: BoxDecoration(
+                  color: const Color.fromRGBO(199, 0, 0, 1),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: Text(
+                  'QTT:${j["atividades"]}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
               ),
             ],
           ),
@@ -255,12 +320,12 @@ class _RankingSemanalState extends State<RankingSemanal> {
       onTap: (index) {
         if (index == 1) {
           Navigator.pushReplacement(
-            context, 
+            context,
             PageRouteBuilder(
-              // Passando o grupoId adiante para a página TOTAL
-              pageBuilder: (context, a1, a2) => RankingTotal(grupoId: widget.grupoId), 
-              transitionDuration: Duration.zero
-            )
+              pageBuilder: (context, a1, a2) =>
+                  RankingTotal(grupoId: widget.grupoId),
+              transitionDuration: Duration.zero,
+            ),
           );
         }
       },
@@ -273,8 +338,13 @@ class PillarPainter extends CustomPainter {
   final Color colorFront;
   final Color colorSide;
   final Color colorTop;
-  
-  PillarPainter({required this.altura, required this.colorFront, required this.colorSide, required this.colorTop});
+
+  PillarPainter({
+    required this.altura,
+    required this.colorFront,
+    required this.colorSide,
+    required this.colorTop,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -283,12 +353,30 @@ class PillarPainter extends CustomPainter {
     const double D = 15.0;
     const double angle = 0.5;
     final double Dy = D * angle;
-    final paintBorder = Paint()..color = Colors.black..strokeWidth = 1.5..style = PaintingStyle.stroke;
+    final paintBorder = Paint()
+      ..color = Colors.black
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
     final base = altura + Dy;
 
-    final pathFront = Path()..moveTo(0, base)..lineTo(W, base)..lineTo(W, Dy)..lineTo(0, Dy)..close();
-    final pathSide = Path()..moveTo(W, base)..lineTo(W + D, base - Dy)..lineTo(W + D, 0)..lineTo(W, Dy)..close();
-    final pathTop = Path()..moveTo(0, Dy)..lineTo(W, Dy)..lineTo(W + D, 0)..lineTo(D, 0)..close();
+    final pathFront = Path()
+      ..moveTo(0, base)
+      ..lineTo(W, base)
+      ..lineTo(W, Dy)
+      ..lineTo(0, Dy)
+      ..close();
+    final pathSide = Path()
+      ..moveTo(W, base)
+      ..lineTo(W + D, base - Dy)
+      ..lineTo(W + D, 0)
+      ..lineTo(W, Dy)
+      ..close();
+    final pathTop = Path()
+      ..moveTo(0, Dy)
+      ..lineTo(W, Dy)
+      ..lineTo(W + D, 0)
+      ..lineTo(D, 0)
+      ..close();
 
     canvas.drawPath(pathFront, Paint()..color = colorFront);
     canvas.drawPath(pathSide, Paint()..color = colorSide);
@@ -299,5 +387,6 @@ class PillarPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant PillarPainter oldDelegate) => oldDelegate.altura != altura;
+  bool shouldRepaint(covariant PillarPainter oldDelegate) =>
+      oldDelegate.altura != altura;
 }

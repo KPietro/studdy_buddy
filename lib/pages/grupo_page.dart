@@ -119,11 +119,21 @@ class _GrupoPageState extends State<GrupoPage> {
     }
   }
 
+  // --- CORES ATUALIZADAS PARA O TEMA CLARO PREMIUM ---
   Color get bgMain =>
       widget.isDark ? const Color(0xFF1D0000) : const Color(0xFFEAFaf1);
-  Color get textMain => widget.isDark ? Colors.white : Colors.black;
-  Color get pillBg =>
-      widget.isDark ? const Color(0xFF333333) : const Color(0xFF5A5A5A);
+  Color get textMain => widget.isDark ? Colors.white : Colors.black87;
+  Color get pillBg => widget.isDark ? const Color(0xFF333333) : Colors.white;
+
+  List<BoxShadow>? get shadowClara => widget.isDark
+      ? null
+      : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ];
 
   ImageProvider? _obterImagem(String? url) {
     if (url == null || url.isEmpty) return null;
@@ -139,10 +149,10 @@ class _GrupoPageState extends State<GrupoPage> {
         backgroundColor: bgMain,
         color: widget.isDark
             ? const Color(0xFF4A0000)
-            : const Color(0xFF4CAF50),
+            : Colors.green[700]!, // Verde forte no menu
         buttonBackgroundColor: widget.isDark
             ? const Color(0xFF4A0000)
-            : const Color(0xFF4CAF50),
+            : Colors.green[700]!,
         height: 60,
         animationDuration: const Duration(milliseconds: 300),
         index: 1,
@@ -234,31 +244,43 @@ class _GrupoPageState extends State<GrupoPage> {
                         child: Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            CircleAvatar(
-                              backgroundColor: Colors.greenAccent[700],
-                              radius: 22,
-                              backgroundImage: _obterImagem(fotoGrupo),
-                              child: (fotoGrupo.isEmpty)
-                                  ? Text(
-                                      nomeAtualizado.isNotEmpty
-                                          ? nomeAtualizado[0].toUpperCase()
-                                          : "G",
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 22,
-                                      ),
-                                    )
-                                  : null,
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: shadowClara,
+                              ),
+                              child: CircleAvatar(
+                                backgroundColor: widget.isDark
+                                    ? Colors.greenAccent[700]
+                                    : Colors.green[700],
+                                radius: 22,
+                                backgroundImage: _obterImagem(fotoGrupo),
+                                child: (fotoGrupo.isEmpty)
+                                    ? Text(
+                                        nomeAtualizado.isNotEmpty
+                                            ? nomeAtualizado[0].toUpperCase()
+                                            : "G",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 22,
+                                        ),
+                                      )
+                                    : null,
+                              ),
                             ),
                             Positioned(
                               bottom: -2,
                               right: -2,
                               child: Container(
                                 padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
+                                decoration: BoxDecoration(
                                   color: Colors.white,
                                   shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                    width: 0.5,
+                                  ),
                                 ),
                                 child: const Icon(
                                   Icons.edit,
@@ -297,20 +319,21 @@ class _GrupoPageState extends State<GrupoPage> {
               child: Container(
                 height: 45,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF5A5A5A),
+                  color: pillBg, // Ficou branco no tema claro!
                   borderRadius: BorderRadius.circular(25),
+                  boxShadow: shadowClara,
                 ),
-                child: const TextField(
-                  style: TextStyle(color: Colors.white),
+                child: TextField(
+                  style: TextStyle(color: textMain),
                   decoration: InputDecoration(
                     hintText: "Pesquisar tarefas...",
-                    hintStyle: TextStyle(color: Colors.white54),
+                    hintStyle: const TextStyle(color: Colors.grey),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 15,
                       vertical: 12,
                     ),
-                    suffixIcon: Icon(Icons.search, color: Colors.white),
+                    suffixIcon: const Icon(Icons.search, color: Colors.grey),
                   ),
                 ),
               ),
@@ -395,7 +418,7 @@ class _GrupoPageState extends State<GrupoPage> {
   }) {
     Color corDestaque = tipoTarefa == "Tarefa Maior"
         ? Colors.redAccent
-        : Colors.greenAccent[400]!;
+        : Colors.green[700]!;
 
     return GestureDetector(
       onTap: () => _mostrarDetalhesTarefa(
@@ -414,6 +437,7 @@ class _GrupoPageState extends State<GrupoPage> {
         decoration: BoxDecoration(
           color: pillBg,
           borderRadius: BorderRadius.circular(15),
+          boxShadow: shadowClara, // Sombrinha suave nas tarefas
           border: tipoTarefa == "Tarefa Maior"
               ? Border.all(color: Colors.redAccent.withOpacity(0.3), width: 1)
               : null,
@@ -421,7 +445,7 @@ class _GrupoPageState extends State<GrupoPage> {
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: Colors.white,
+              backgroundColor: widget.isDark ? Colors.white : Colors.grey[200],
               radius: 22,
               child: CircleAvatar(
                 backgroundColor: Colors.green[800],
@@ -458,7 +482,10 @@ class _GrupoPageState extends State<GrupoPage> {
                     const SizedBox(height: 4),
                     Text(
                       descricao,
-                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      style: TextStyle(
+                        color: widget.isDark ? Colors.grey : Colors.grey[600],
+                        fontSize: 13,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -466,7 +493,10 @@ class _GrupoPageState extends State<GrupoPage> {
                   const SizedBox(height: 4),
                   Text(
                     "$minutos minutos",
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    style: TextStyle(
+                      color: widget.isDark ? Colors.grey : Colors.grey[600],
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -491,7 +521,7 @@ class _GrupoPageState extends State<GrupoPage> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: corDestaque.withOpacity(0.2),
+                    color: corDestaque.withOpacity(widget.isDark ? 0.2 : 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -525,7 +555,7 @@ class _GrupoPageState extends State<GrupoPage> {
       context: context,
       backgroundColor: widget.isDark
           ? const Color(0xFF2D0505)
-          : const Color(0xFFEAFaf1),
+          : Colors.white, // Modal branco no tema claro!
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

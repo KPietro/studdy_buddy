@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:async'; // <-- Necessário para o Timer funcionar!
+import 'dart:async';
 import '../controllers/imagem_controller.dart';
 
 class RegistroAtividadePage extends StatefulWidget {
@@ -19,27 +19,36 @@ class RegistroAtividadePage extends StatefulWidget {
 }
 
 class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
+  // --- CORES DO TEMA PREMIUM ---
   Color get bgMain =>
       widget.isDark ? const Color(0xFF1D0000) : const Color(0xFFEAFaf1);
-  Color get textMain => widget.isDark ? Colors.white : Colors.black;
+  Color get textMain => widget.isDark ? Colors.white : Colors.black87;
   Color get pillBg => widget.isDark ? const Color(0xFF333333) : Colors.white;
+
+  // --- SOMBRA SUAVE ---
+  List<BoxShadow>? get shadowClara => widget.isDark
+      ? null
+      : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ];
 
   bool usarTimer = true;
   bool timerRodando = false;
   bool isSaving = false;
 
-  // --- VARIÁVEIS DO TIMER ---
   Timer? _timer;
   int _segundosDecorridos = 0;
 
-  // Controladores para a Aba Comum
   final _acaoComumCtrl = TextEditingController();
   final _minutosComumCtrl = TextEditingController();
   final _descComumCtrl = TextEditingController();
   String? urlImagemComum;
   bool isUploadingComum = false;
 
-  // Controladores para a Aba Maior
   final _acaoMaiorCtrl = TextEditingController();
   final _minutosMaiorCtrl = TextEditingController();
   final _descMaiorCtrl = TextEditingController();
@@ -48,7 +57,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
 
   @override
   void dispose() {
-    _timer?.cancel(); // Cancela o timer se sair da tela
+    _timer?.cancel();
     _acaoComumCtrl.dispose();
     _minutosComumCtrl.dispose();
     _descComumCtrl.dispose();
@@ -58,7 +67,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     super.dispose();
   }
 
-  // --- FUNÇÕES DO TIMER ---
   void _iniciarOuPararTimer() {
     if (timerRodando) {
       _timer?.cancel();
@@ -82,7 +90,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  // --- LÓGICA DE UPLOAD ---
   Future<void> _escolherImagem(String tipo) async {
     setState(() {
       if (tipo == "Comum") isUploadingComum = true;
@@ -105,7 +112,10 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     if (mounted) {
       if (link != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Imagem anexada com sucesso!")),
+          const SnackBar(
+            content: Text("Imagem anexada com sucesso!"),
+            backgroundColor: Colors.green,
+          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -118,7 +128,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
     }
   }
 
-  // --- LÓGICA DE SALVAR ---
   Future<void> _salvarAtividade(String tipoTarefa) async {
     if (isSaving) return;
 
@@ -135,7 +144,10 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
 
     if (acao.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Preencha a ação/título da atividade!")),
+        const SnackBar(
+          content: Text("Preencha a ação/título da atividade!"),
+          backgroundColor: Colors.amber,
+        ),
       );
       return;
     }
@@ -144,6 +156,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("A foto é obrigatória para a Tarefa Maior!"),
+          backgroundColor: Colors.amber,
         ),
       );
       return;
@@ -157,9 +170,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
 
       int minutos = 0;
 
-      // CÁLCULO DOS MINUTOS: Manual ou pelo Timer
       if (tipoTarefa == "Comum" && usarTimer) {
-        // Arredonda pra cima: Se tem 1 seg, vira 1 min. Se tem 61 seg, vira 2 min.
         minutos = _segundosDecorridos > 0
             ? ((_segundosDecorridos + 59) ~/ 60)
             : 0;
@@ -167,7 +178,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
         minutos = int.tryParse(minStr) ?? 0;
       }
 
-      // TRAVA DE 10.000 MINUTOS E ZERO MINUTOS
       if (minutos <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -189,7 +199,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
         return;
       }
 
-      // 1. Pega dados do criador
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('usuarios')
           .doc(user.uid)
@@ -203,7 +212,6 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
         fotoDoCriador = userData['url_perfil'] ?? "";
       }
 
-      // 2. Pega regras do grupo
       DocumentSnapshot grupoDoc = await FirebaseFirestore.instance
           .collection('grupos')
           .doc(widget.grupoId)
@@ -271,7 +279,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
       await batch.commit();
 
       if (mounted) {
-        _timer?.cancel(); // Para o timer ao enviar
+        _timer?.cancel();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Atividade enviada e pontos computados!"),
@@ -303,10 +311,10 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
         appBar: AppBar(
           backgroundColor: widget.isDark
               ? const Color(0xFF4A0000)
-              : Colors.green,
+              : Colors.green[700], // Verde mais elegante
           title: const Text(
             "Registrar Atividade",
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
@@ -341,6 +349,10 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
             decoration: BoxDecoration(
               color: pillBg,
               borderRadius: BorderRadius.circular(15),
+              boxShadow: shadowClara, // Sombrinha suave!
+              border: Border.all(
+                color: widget.isDark ? Colors.white24 : Colors.transparent,
+              ),
             ),
             child: SwitchListTile(
               title: Text(
@@ -350,11 +362,11 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
               subtitle: Text(
                 "Desative para inserir tempo manual",
                 style: TextStyle(
-                  color: textMain.withOpacity(0.6),
+                  color: widget.isDark ? Colors.white60 : Colors.black54,
                   fontSize: 12,
                 ),
               ),
-              activeColor: widget.isDark ? Colors.red : Colors.green,
+              activeColor: widget.isDark ? Colors.red : Colors.green[700],
               value: usarTimer,
               onChanged: (val) {
                 setState(() {
@@ -374,7 +386,7 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
               child: Column(
                 children: [
                   Text(
-                    _formatarTempo(), // Mostra o timer rodando bonitão!
+                    _formatarTempo(),
                     style: TextStyle(
                       color: textMain,
                       fontSize: 48,
@@ -391,12 +403,18 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
                     ),
                     label: Text(
                       timerRodando ? "Parar Timer" : "Iniciar Timer",
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: timerRodando
                           ? Colors.red
-                          : (widget.isDark ? Colors.red[900] : Colors.green),
+                          : (widget.isDark
+                                ? Colors.red[900]
+                                : Colors.green[700]),
+                      elevation: widget.isDark ? 0 : 4,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 30,
                         vertical: 15,
@@ -450,13 +468,13 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(0.2),
+              color: Colors.amber.withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.amber),
+              border: Border.all(color: Colors.amber.shade700),
             ),
             child: Row(
               children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.amber),
+                Icon(Icons.warning_amber_rounded, color: Colors.amber.shade700),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -527,7 +545,10 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
       decoration: BoxDecoration(
         color: pillBg,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: widget.isDark ? Colors.white24 : Colors.grey),
+        boxShadow: shadowClara, // Sombrinha no campo de texto!
+        border: Border.all(
+          color: widget.isDark ? Colors.white24 : Colors.transparent,
+        ),
       ),
       child: TextField(
         controller: controller,
@@ -536,7 +557,9 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
         style: TextStyle(color: textMain),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: Colors.grey),
+          hintStyle: TextStyle(
+            color: widget.isDark ? Colors.grey : Colors.grey[500],
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 15,
@@ -568,15 +591,23 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
           : Icon(
               icone,
               color: obrigatorio
-                  ? Colors.amber
-                  : (widget.isDark ? Colors.red : Colors.green),
+                  ? Colors.amber.shade700
+                  : (widget.isDark ? Colors.red : Colors.green[700]),
             ),
       label: Text(
         isLoading ? "Enviando para a nuvem..." : texto,
-        style: TextStyle(color: textMain, fontSize: 12),
+        style: TextStyle(
+          color: textMain,
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       style: OutlinedButton.styleFrom(
-        side: BorderSide(color: obrigatorio ? Colors.amber : Colors.grey),
+        side: BorderSide(
+          color: obrigatorio
+              ? Colors.amber.shade700
+              : (widget.isDark ? Colors.grey : Colors.grey.shade400),
+        ),
         padding: const EdgeInsets.all(15),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       ),
@@ -589,7 +620,8 @@ class _RegistroAtividadePageState extends State<RegistroAtividadePage> {
       height: 50,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: widget.isDark ? Colors.red[700] : Colors.green,
+          backgroundColor: widget.isDark ? Colors.red[700] : Colors.green[700],
+          elevation: widget.isDark ? 0 : 5, // Destaque visual
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),

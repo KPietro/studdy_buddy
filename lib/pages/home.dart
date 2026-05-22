@@ -35,13 +35,28 @@ class _HomePageState extends State<HomePage> {
     isDark = widget.isDark;
   }
 
+  // --- CORES ATUALIZADAS PARA O TEMA CLARO PREMIUM ---
   Color get bgMain =>
       isDark ? const Color(0xFF160303) : const Color(0xFFEAFaf1);
-  Color get bgSidebar =>
-      isDark ? const Color(0xFF4A0000) : const Color(0xFF4CAF50);
-  Color get textMain => isDark ? Colors.white : Colors.black;
-  Color get pillBg =>
-      isDark ? const Color(0xFF333333) : const Color(0xFFB0B0B0);
+  Color get bgSidebar => isDark
+      ? const Color(0xFF4A0000)
+      : Colors.green[700]!; // Verde mais forte para contraste
+  Color get textMain =>
+      isDark ? Colors.white : Colors.black87; // Preto mais suave
+  Color get pillBg => isDark
+      ? const Color(0xFF333333)
+      : Colors.white; // Branco puro no tema claro!
+
+  // --- SOMBRA SUAVE PARA O TEMA CLARO ---
+  List<BoxShadow>? get shadowClara => isDark
+      ? null
+      : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ];
 
   // --- MODAL DE DETALHES DA TAREFA ---
   void _mostrarDetalhesTarefa(
@@ -57,7 +72,7 @@ class _HomePageState extends State<HomePage> {
       context: context,
       backgroundColor: isDark
           ? const Color(0xFF2D0505)
-          : const Color(0xFFEAFaf1),
+          : Colors.white, // Modal branco no tema claro
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -107,7 +122,6 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 10),
                 GestureDetector(
                   onTap: () {
-                    // ABRE A IMAGEM EM TELA CHEIA!
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -170,15 +184,14 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // --- DESIGN DA TAREFA COM MINI FOTO DO GRUPO NO CANTO SUPERIOR ESQUERDO ---
+  // --- DESIGN DA TAREFA ---
   Widget _buildTarefaItem(
     BuildContext context,
     String titulo,
     String? fotoUrl,
     String nomeUsuario,
     String nomeGrupo, {
-    String?
-    fotoGrupoUrl, // <-- NOVO: Recebe a foto do grupo para a mini bolinha
+    String? fotoGrupoUrl,
     String? provaUrl,
     String descricao = "",
     String tipoTarefa = "",
@@ -187,7 +200,7 @@ class _HomePageState extends State<HomePage> {
   }) {
     Color corDestaque = tipoTarefa == "Tarefa Maior"
         ? Colors.redAccent
-        : Colors.greenAccent[400]!;
+        : Colors.greenAccent[700]!; // Verde mais forte no claro
 
     return GestureDetector(
       onTap: () => _mostrarDetalhesTarefa(
@@ -205,18 +218,18 @@ class _HomePageState extends State<HomePage> {
         decoration: BoxDecoration(
           color: pillBg,
           borderRadius: BorderRadius.circular(15),
+          boxShadow: shadowClara, // Aplica a sombra suave aqui!
           border: tipoTarefa == "Tarefa Maior"
               ? Border.all(color: Colors.redAccent.withOpacity(0.3), width: 1)
               : null,
         ),
         child: Row(
           children: [
-            // Avatar do criador com um mini distintivo do grupo no canto superior esquerdo
             Stack(
               clipBehavior: Clip.none,
               children: [
                 CircleAvatar(
-                  backgroundColor: Colors.white,
+                  backgroundColor: isDark ? Colors.white : Colors.grey[200],
                   radius: 22,
                   child: CircleAvatar(
                     backgroundColor: Colors.green[800],
@@ -242,18 +255,14 @@ class _HomePageState extends State<HomePage> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isDark
-                            ? const Color(0xFF160303)
-                            : const Color(0xFFEAFaf1),
+                        color: isDark ? const Color(0xFF160303) : Colors.white,
                         width: 1.5,
                       ),
                     ),
                     child: CircleAvatar(
                       radius: 9,
                       backgroundColor: Colors.blueGrey,
-                      backgroundImage: _obterImagem(
-                        fotoGrupoUrl,
-                      ), // <-- Usa a imagem do grupo!
+                      backgroundImage: _obterImagem(fotoGrupoUrl),
                       child: (fotoGrupoUrl == null || fotoGrupoUrl.isEmpty)
                           ? Text(
                               nomeGrupo.isNotEmpty
@@ -289,7 +298,10 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: 4),
                     Text(
                       descricao,
-                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      style: TextStyle(
+                        color: isDark ? Colors.grey : Colors.grey[600],
+                        fontSize: 13,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -297,14 +309,15 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 4),
                   Text(
                     "$minutos minutos",
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    style: TextStyle(
+                      color: isDark ? Colors.grey : Colors.grey[600],
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 10),
-
-            // Destaque de pontos na direita
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -324,7 +337,7 @@ class _HomePageState extends State<HomePage> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: corDestaque.withOpacity(0.2),
+                    color: corDestaque.withOpacity(isDark ? 0.2 : 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -351,7 +364,6 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: Row(
           children: [
-            // AREA PRINCIPAL (ESQUERDA)
             Expanded(
               child: Stack(
                 children: [
@@ -363,7 +375,6 @@ class _HomePageState extends State<HomePage> {
                         child: Row(
                           children: [
                             const SizedBox(height: 50),
-                            // ICONE DE PERFIL DINAMICO
                             StreamBuilder<DocumentSnapshot>(
                               stream: FirebaseFirestore.instance
                                   .collection('usuarios')
@@ -397,15 +408,19 @@ class _HomePageState extends State<HomePage> {
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                        color: Colors.white24,
+                                        color: isDark
+                                            ? Colors.white24
+                                            : Colors.transparent,
                                         width: 2,
                                       ),
+                                      boxShadow:
+                                          shadowClara, // Sombra suave no avatar
                                     ),
                                     child: CircleAvatar(
                                       radius: 25,
                                       backgroundColor: isDark
                                           ? Colors.white10
-                                          : Colors.black12,
+                                          : Colors.white,
                                       backgroundImage: _obterImagem(fotoUrl),
                                       child:
                                           (fotoUrl == null || fotoUrl.isEmpty)
@@ -427,7 +442,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
 
-                      // BARRA DE PESQUISA
                       GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -447,6 +461,8 @@ class _HomePageState extends State<HomePage> {
                           decoration: BoxDecoration(
                             color: pillBg,
                             borderRadius: BorderRadius.circular(20),
+                            boxShadow:
+                                shadowClara, // Sombra na barra de pesquisa
                           ),
                           child: Row(
                             children: [
@@ -455,7 +471,9 @@ class _HomePageState extends State<HomePage> {
                               Text(
                                 "Encontrar novos grupos...",
                                 style: TextStyle(
-                                  color: Colors.grey.shade400,
+                                  color: isDark
+                                      ? Colors.grey.shade400
+                                      : Colors.grey.shade600,
                                   fontSize: 16,
                                 ),
                               ),
@@ -465,7 +483,6 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 30),
 
-                      // TITULO "MINHAS ATIVIDADES RECENTES"
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Text(
@@ -480,7 +497,6 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 15),
 
-                      // LISTA DE TAREFAS RECENTES DO USUARIO
                       Expanded(
                         child: StreamBuilder<QuerySnapshot>(
                           stream: FirebaseFirestore.instance
@@ -545,11 +561,9 @@ class _HomePageState extends State<HomePage> {
                                     tarefa['criador_nome'] ?? "Você";
                                 String? fotoUrl = tarefa['criador_foto'];
 
-                                // Pega o ID do grupo pai na rota das subcoleções
                                 String grupoId =
                                     docTarefa.reference.parent.parent!.id;
 
-                                // FutureBuilder para obter as regras de cálculo e nome/foto de cada grupo
                                 return FutureBuilder<DocumentSnapshot>(
                                   future: FirebaseFirestore.instance
                                       .collection('grupos')
@@ -567,8 +581,7 @@ class _HomePageState extends State<HomePage> {
                                           grupoSnap.data!.data()
                                               as Map<String, dynamic>;
                                       nomeGrupo = dadosGrupo['nome'] ?? "Grupo";
-                                      fotoGrupoDaVez =
-                                          dadosGrupo['foto_grupo']; // Puxa a foto do grupo!
+                                      fotoGrupoDaVez = dadosGrupo['foto_grupo'];
                                       pontosMinuto =
                                           (dadosGrupo['pontos_por_minuto'] ??
                                                   dadosGrupo['pontos_minuto'] ??
@@ -581,7 +594,6 @@ class _HomePageState extends State<HomePage> {
                                               .toInt();
                                     }
 
-                                    // Calcula os pontos em tempo real
                                     int totalPontosCalculados =
                                         (minutos * pontosMinuto) +
                                         (tipo == "Tarefa Maior"
@@ -596,8 +608,7 @@ class _HomePageState extends State<HomePage> {
                                       fotoUrl,
                                       nomeUsuario,
                                       nomeGrupo,
-                                      fotoGrupoUrl:
-                                          fotoGrupoDaVez, // Passa a foto do grupo para a mini bolinha
+                                      fotoGrupoUrl: fotoGrupoDaVez,
                                       provaUrl: provaUrl,
                                       descricao: descricao,
                                       tipoTarefa: tipo,
@@ -614,7 +625,6 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
 
-                  // ENGRENAGEM (CONFIGURACOES)
                   Positioned(
                     bottom: 20,
                     left: 20,
@@ -627,7 +637,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       child: Icon(
                         Icons.settings,
-                        color: isDark ? Colors.red : Colors.greenAccent,
+                        color: isDark ? Colors.red : Colors.green[700],
                         size: 40,
                       ),
                     ),
@@ -636,7 +646,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // SIDEBAR (DIREITA) - MEUS GRUPOS
             Container(
               width: 70,
               decoration: BoxDecoration(
@@ -658,11 +667,11 @@ class _HomePageState extends State<HomePage> {
                         builder: (context) => CriacaoGrupoPage(isDark: isDark),
                       ),
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.add_circle_outline,
-                      color: textMain,
+                      color: Colors.white,
                       size: 45,
-                    ),
+                    ), // Ícone branco pra destacar no verde
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 10),
@@ -678,7 +687,9 @@ class _HomePageState extends State<HomePage> {
                       builder: (context, snapshot) {
                         if (!snapshot.hasData)
                           return const Center(
-                            child: CircularProgressIndicator(),
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
                           );
                         var meusGrupos = snapshot.data!.docs;
                         return ListView.builder(
@@ -689,8 +700,7 @@ class _HomePageState extends State<HomePage> {
                                     as Map<String, dynamic>;
                             String idDoGrupo = meusGrupos[index].id;
                             String nomeDoGrupo = dados['nome'] ?? "Sem nome";
-                            String? fotoDoGrupo =
-                                dados['foto_grupo']; // <-- Puxa a foto para a sidebar
+                            String? fotoDoGrupo = dados['foto_grupo'];
 
                             return GestureDetector(
                               onTap: () {
@@ -705,10 +715,7 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 );
                               },
-                              child: _buildCardGrupo(
-                                nomeDoGrupo,
-                                fotoDoGrupo,
-                              ), // <-- Atualizado
+                              child: _buildCardGrupo(nomeDoGrupo, fotoDoGrupo),
                             );
                           },
                         );
@@ -722,11 +729,11 @@ class _HomePageState extends State<HomePage> {
                         builder: (context) => ChatsRecentesPage(isDark: isDark),
                       ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
+                    child: const Padding(
+                      padding: EdgeInsets.only(bottom: 20),
                       child: Icon(
                         Icons.email_outlined,
-                        color: textMain,
+                        color: Colors.white,
                         size: 40,
                       ),
                     ),
@@ -740,7 +747,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // --- ATUALIZADO: Renderiza a foto do grupo ---
   Widget _buildCardGrupo(String nome, String? fotoUrl) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -751,7 +757,9 @@ class _HomePageState extends State<HomePage> {
         border: Border.all(color: Colors.white, width: 2),
       ),
       child: CircleAvatar(
-        backgroundColor: const Color(0xFF5A5A5A),
+        backgroundColor: isDark
+            ? const Color(0xFF5A5A5A)
+            : Colors.white30, // Mais suave no tema claro
         radius: 25,
         backgroundImage: _obterImagem(fotoUrl),
         child: (fotoUrl == null || fotoUrl.isEmpty)

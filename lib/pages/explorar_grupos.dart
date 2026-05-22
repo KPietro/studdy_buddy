@@ -15,11 +15,25 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
   String queryPesquisa = "";
   final user = FirebaseAuth.instance.currentUser;
 
+  // --- CORES DO TEMA PREMIUM ---
   Color get bgMain =>
       widget.isDark ? const Color(0xFF1D0000) : const Color(0xFFEAFaf1);
-  Color get textMain => widget.isDark ? Colors.white : Colors.black;
-  Color get pillBg =>
-      widget.isDark ? const Color(0xFF333333) : const Color(0xFFB0B0B0);
+  Color get textMain =>
+      widget.isDark ? Colors.white : Colors.black87; // Preto suave
+  Color get pillBg => widget.isDark
+      ? const Color(0xFF333333)
+      : Colors.white; // Branco puro no claro
+
+  // --- SOMBRA SUAVE ---
+  List<BoxShadow>? get shadowClara => widget.isDark
+      ? null
+      : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ];
 
   // Função auxiliar para gerenciar a imagem (Cloudinary ou Assets)
   ImageProvider? _obterImagem(String? url) {
@@ -74,7 +88,7 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context); // Volta pra Home depois de entrar!
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
@@ -91,14 +105,14 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2, // 2 Abas: Grupos e Usuários
+      length: 2,
       child: Scaffold(
         backgroundColor: bgMain,
         appBar: AppBar(
           backgroundColor: widget.isDark
               ? const Color(0xFF4A0000)
-              : Colors.green,
-          elevation: 0,
+              : Colors.green[700], // Verde Premium
+          elevation: widget.isDark ? 0 : 2,
           iconTheme: const IconThemeData(color: Colors.white),
           title: const Text(
             "Explorar",
@@ -116,22 +130,33 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
         ),
         body: Column(
           children: [
-            // --- BARRA DE PESQUISA (Fica fixa no topo pras duas abas) ---
+            // --- BARRA DE PESQUISA ---
             Padding(
               padding: const EdgeInsets.all(20),
-              child: TextField(
-                style: TextStyle(color: textMain),
-                onChanged: (valor) => setState(() => queryPesquisa = valor),
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: "Buscar por nome...",
-                  hintStyle: const TextStyle(color: Colors.grey),
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                  filled: true,
-                  fillColor: pillBg,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide.none,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: pillBg,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: shadowClara, // Sombrinha na barra
+                ),
+                child: TextField(
+                  style: TextStyle(color: textMain),
+                  onChanged: (valor) => setState(() => queryPesquisa = valor),
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: "Buscar por nome...",
+                    hintStyle: TextStyle(
+                      color: widget.isDark ? Colors.grey : Colors.grey[500],
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: widget.isDark ? Colors.grey : Colors.grey[500],
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 15,
+                      vertical: 15,
+                    ),
                   ),
                 ),
               ),
@@ -150,7 +175,7 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
   }
 
   // ==========================================
-  // ABA 1: LISTA DE GRUPOS (Lógica original)
+  // ABA 1: LISTA DE GRUPOS
   // ==========================================
   Widget _buildAbaGrupos() {
     return StreamBuilder<QuerySnapshot>(
@@ -185,6 +210,7 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
             var dados = grupos[index].data() as Map<String, dynamic>;
             String idDoGrupo = grupos[index].id;
             String nomeDoGrupo = dados['nome'] ?? "Sem nome";
+            String? fotoGrupo = dados['foto_grupo'];
             List membrosIds = dados['membros_ids'] ?? [];
             bool jaParticipa = user != null && membrosIds.contains(user!.uid);
 
@@ -194,22 +220,28 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
               decoration: BoxDecoration(
                 color: pillBg,
                 borderRadius: BorderRadius.circular(20),
+                boxShadow: shadowClara, // Sombrinha nos cards
               ),
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: Colors.greenAccent[700],
+                    backgroundColor: widget.isDark
+                        ? Colors.greenAccent[700]
+                        : Colors.green[700],
                     radius: 25,
-                    child: Text(
-                      nomeDoGrupo.isNotEmpty
-                          ? nomeDoGrupo[0].toUpperCase()
-                          : "?",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    backgroundImage: _obterImagem(fotoGrupo),
+                    child: (fotoGrupo == null || fotoGrupo.isEmpty)
+                        ? Text(
+                            nomeDoGrupo.isNotEmpty
+                                ? nomeDoGrupo[0].toUpperCase()
+                                : "?",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 15),
                   Expanded(
@@ -227,8 +259,10 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
                         ),
                         Text(
                           "${membrosIds.length} membro(s)",
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          style: TextStyle(
+                            color: widget.isDark
+                                ? Colors.grey
+                                : Colors.grey[600],
                             fontSize: 13,
                           ),
                         ),
@@ -236,10 +270,12 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
                     ),
                   ),
                   jaParticipa
-                      ? const Text(
+                      ? Text(
                           "Participando",
                           style: TextStyle(
-                            color: Colors.green,
+                            color: widget.isDark
+                                ? Colors.greenAccent
+                                : Colors.green[700],
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -248,7 +284,8 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: widget.isDark
                                 ? Colors.red[700]
-                                : Colors.green,
+                                : Colors.green[700], // Verde premium no claro
+                            elevation: widget.isDark ? 0 : 3,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -272,7 +309,7 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
   }
 
   // ==========================================
-  // ABA 2: LISTA DE USUÁRIOS (Rede Social)
+  // ABA 2: LISTA DE USUÁRIOS
   // ==========================================
   Widget _buildAbaUsuarios() {
     return StreamBuilder<QuerySnapshot>(
@@ -280,13 +317,10 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
           ? FirebaseFirestore.instance
                 .collection('usuarios')
                 .limit(20)
-                .snapshots() // Mostra alguns usuários sugeridos
+                .snapshots()
           : FirebaseFirestore.instance
                 .collection('usuarios')
-                .where(
-                  'nome',
-                  isGreaterThanOrEqualTo: queryPesquisa,
-                ) // Pesquisa pelo nome
+                .where('nome', isGreaterThanOrEqualTo: queryPesquisa)
                 .where('nome', isLessThan: queryPesquisa + 'z')
                 .snapshots(),
       builder: (context, snapshot) {
@@ -309,7 +343,6 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
             var dados = usuarios[index].data() as Map<String, dynamic>;
             String userId = usuarios[index].id;
 
-            // Não mostra o próprio usuário na lista de pesquisa
             if (userId == user?.uid) return const SizedBox.shrink();
 
             String nomeUsuario =
@@ -323,11 +356,14 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
               decoration: BoxDecoration(
                 color: pillBg,
                 borderRadius: BorderRadius.circular(20),
+                boxShadow: shadowClara, // Sombrinha nos cards
               ),
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: Colors.blueAccent[700],
+                    backgroundColor: widget.isDark
+                        ? Colors.blueAccent[700]
+                        : Colors.blue[700],
                     radius: 25,
                     backgroundImage: _obterImagem(fotoUrl),
                     child: (fotoUrl == null || fotoUrl.isEmpty)
@@ -359,8 +395,10 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
                         ),
                         Text(
                           bio,
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          style: TextStyle(
+                            color: widget.isDark
+                                ? Colors.grey
+                                : Colors.grey[600],
                             fontSize: 12,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -371,18 +409,15 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
                   ),
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: widget.isDark
-                          ? Colors.white
-                          : Colors.black,
+                      foregroundColor: textMain, // Fica preto suave no claro
                       side: BorderSide(
-                        color: widget.isDark ? Colors.white24 : Colors.grey,
+                        color: widget.isDark ? Colors.white24 : Colors.black12,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                     onPressed: () {
-                      // Aqui futuramente a gente pode colocar para abrir o perfil público do cara!
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(

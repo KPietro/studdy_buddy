@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cached_network_image/cached_network_image.dart'; // <-- Import da imagem com cache
-import '../controllers/imagem_controller.dart'; // <-- Import do controller do Cloudinary
+import 'package:cached_network_image/cached_network_image.dart';
+import '../controllers/imagem_controller.dart';
 
 class CriacaoGrupoPage extends StatefulWidget {
   final bool isDark;
@@ -13,10 +13,21 @@ class CriacaoGrupoPage extends StatefulWidget {
 }
 
 class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
+  // --- CORES ATUALIZADAS ---
   Color get bgMain =>
       widget.isDark ? const Color(0xFF1D0000) : const Color(0xFFEAFaf1);
-  Color get textMain => widget.isDark ? Colors.white : Colors.black;
+  Color get textMain => widget.isDark ? Colors.white : Colors.black87;
   Color get pillBg => widget.isDark ? const Color(0xFF333333) : Colors.white;
+
+  List<BoxShadow>? get shadowClara => widget.isDark
+      ? null
+      : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ];
 
   final nomeController = TextEditingController();
   final pontosMinutoController = TextEditingController(text: "1");
@@ -24,9 +35,7 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
   final tituloSemanalController = TextEditingController();
   final tituloTotalController = TextEditingController();
 
-  bool isLoading = false; // Variável para controlar o botão de loading
-
-  // --- VARIÁVEIS DA FOTO DO GRUPO ---
+  bool isLoading = false;
   String? urlFotoGrupo;
   bool isUploading = false;
 
@@ -40,12 +49,9 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
     super.dispose();
   }
 
-  // --- LÓGICA DE UPLOAD DA FOTO DO GRUPO ---
   Future<void> _escolherImagem() async {
     setState(() => isUploading = true);
-
     String? link = await ImagemController.escolherESubirImagem();
-
     setState(() {
       if (link != null) urlFotoGrupo = link;
       isUploading = false;
@@ -70,7 +76,6 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
     }
   }
 
-  // --- LÓGICA REAL AO FIREBASE ---
   Future<void> _criarGrupo() async {
     if (nomeController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -78,30 +83,27 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
       );
       return;
     }
-
     setState(() => isLoading = true);
 
     try {
       final user = FirebaseAuth.instance.currentUser;
 
-      // 1. Cria o documento do Grupo na coleção 'grupos'
-      DocumentReference
-      novoGrupoRef = await FirebaseFirestore.instance.collection('grupos').add({
-        'nome': nomeController.text.trim(),
-        'foto_grupo': urlFotoGrupo ?? "", // <-- SALVANDO A FOTO DO GRUPO AQUI!
-        'pontos_minuto': int.tryParse(pontosMinutoController.text.trim()) ?? 1,
-        'meta_maior': int.tryParse(metaMaiorController.text.trim()) ?? 0,
-        'titulo_semanal': tituloSemanalController.text.trim(),
-        'titulo_total': tituloTotalController.text.trim(),
-        'criador_id': user?.uid,
-        'data_criacao': FieldValue.serverTimestamp(),
-        // A MÁGICA AQUI: Garante que o criador já comece na lista de membros do grupo!
-        'membros_ids': [user?.uid],
-      });
+      DocumentReference novoGrupoRef = await FirebaseFirestore.instance
+          .collection('grupos')
+          .add({
+            'nome': nomeController.text.trim(),
+            'foto_grupo': urlFotoGrupo ?? "",
+            'pontos_minuto':
+                int.tryParse(pontosMinutoController.text.trim()) ?? 1,
+            'meta_maior': int.tryParse(metaMaiorController.text.trim()) ?? 0,
+            'titulo_semanal': tituloSemanalController.text.trim(),
+            'titulo_total': tituloTotalController.text.trim(),
+            'criador_id': user?.uid,
+            'data_criacao': FieldValue.serverTimestamp(),
+            'membros_ids': [user?.uid],
+          });
 
-      // 2. Adiciona o utilizador atual como o primeiro membro na subcoleção 'membros'
       if (user != null) {
-        // Vai buscar o nome e foto do utilizador para guardar no grupo
         DocumentSnapshot userDoc = await FirebaseFirestore.instance
             .collection('usuarios')
             .doc(user.uid)
@@ -122,7 +124,7 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
           'pontosTotais': 0,
           'atividadesMaioresSemanais': 0,
           'atividadesMaioresTotais': 0,
-          'cargo': 'admin', // Identifica o criador do grupo
+          'cargo': 'admin',
           'data_entrada': FieldValue.serverTimestamp(),
         });
       }
@@ -134,7 +136,7 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context); // Regressa à HomePage
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
@@ -146,9 +148,7 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -161,7 +161,7 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
         appBar: AppBar(
           backgroundColor: widget.isDark
               ? const Color(0xFF4A0000)
-              : Colors.green,
+              : Colors.green[700], // Verde forte em cima
           title: const Text(
             "Criar Novo Grupo",
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -186,32 +186,35 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.center, // Centralizado pro Avatar ficar bonito
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(height: 10),
-
-          // --- FOTO DO GRUPO (CLICÁVEL) ---
           GestureDetector(
             onTap: isUploading ? null : _escolherImagem,
             child: Stack(
               alignment: Alignment.center,
               children: [
-                CircleAvatar(
-                  radius: 55,
-                  backgroundColor: widget.isDark
-                      ? Colors.white10
-                      : Colors.black12,
-                  backgroundImage: urlFotoGrupo != null
-                      ? CachedNetworkImageProvider(urlFotoGrupo!)
-                      : null,
-                  child: urlFotoGrupo == null
-                      ? Icon(
-                          Icons.groups,
-                          size: 50,
-                          color: textMain.withOpacity(0.5),
-                        )
-                      : null,
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: shadowClara, // Sombrinha no avatar do grupo
+                  ),
+                  child: CircleAvatar(
+                    radius: 55,
+                    backgroundColor: widget.isDark
+                        ? Colors.white10
+                        : Colors.white,
+                    backgroundImage: urlFotoGrupo != null
+                        ? CachedNetworkImageProvider(urlFotoGrupo!)
+                        : null,
+                    child: urlFotoGrupo == null
+                        ? Icon(
+                            Icons.groups,
+                            size: 50,
+                            color: textMain.withOpacity(0.3),
+                          )
+                        : null,
+                  ),
                 ),
                 if (isUploading)
                   const CircularProgressIndicator(color: Colors.greenAccent),
@@ -221,7 +224,9 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: widget.isDark ? Colors.red[700] : Colors.green,
+                      color: widget.isDark
+                          ? Colors.red[700]
+                          : Colors.green[700],
                       shape: BoxShape.circle,
                       border: Border.all(color: bgMain, width: 3),
                     ),
@@ -237,7 +242,6 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
           ),
           const SizedBox(height: 20),
 
-          // Volta a alinhar o resto na esquerda
           Align(
             alignment: Alignment.centerLeft,
             child: _buildLabel("Nome do Grupo"),
@@ -327,7 +331,10 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
       decoration: BoxDecoration(
         color: pillBg,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: widget.isDark ? Colors.white24 : Colors.grey),
+        boxShadow: shadowClara, // Sombrinha elegante no input de texto!
+        border: Border.all(
+          color: widget.isDark ? Colors.white24 : Colors.transparent,
+        ), // Tiramos a borda cinza no claro para ficar mais limpo
       ),
       child: TextField(
         controller: controller,
@@ -335,7 +342,9 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
         style: TextStyle(color: textMain),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: Colors.grey),
+          hintStyle: TextStyle(
+            color: widget.isDark ? Colors.grey : Colors.grey[500],
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 15,
@@ -352,7 +361,8 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
       height: 50,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: widget.isDark ? Colors.red[700] : Colors.green,
+          backgroundColor: widget.isDark ? Colors.red[700] : Colors.green[700],
+          elevation: widget.isDark ? 0 : 5, // Um pouco de elevação no botão
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
