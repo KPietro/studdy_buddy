@@ -177,6 +177,8 @@ class _HomePageState extends State<HomePage> {
     String? fotoUrl,
     String nomeUsuario,
     String nomeGrupo, {
+    String?
+    fotoGrupoUrl, // <-- NOVO: Recebe a foto do grupo para a mini bolinha
     String? provaUrl,
     String descricao = "",
     String tipoTarefa = "",
@@ -249,14 +251,21 @@ class _HomePageState extends State<HomePage> {
                     child: CircleAvatar(
                       radius: 9,
                       backgroundColor: Colors.blueGrey,
-                      child: Text(
-                        nomeGrupo.isNotEmpty ? nomeGrupo[0].toUpperCase() : "?",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      backgroundImage: _obterImagem(
+                        fotoGrupoUrl,
+                      ), // <-- Usa a imagem do grupo!
+                      child: (fotoGrupoUrl == null || fotoGrupoUrl.isEmpty)
+                          ? Text(
+                              nomeGrupo.isNotEmpty
+                                  ? nomeGrupo[0].toUpperCase()
+                                  : "?",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
                     ),
                   ),
                 ),
@@ -295,7 +304,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(width: 10),
 
-            // Destaque de pontos na direita idêntico ao grupo_page
+            // Destaque de pontos na direita
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -540,7 +549,7 @@ class _HomePageState extends State<HomePage> {
                                 String grupoId =
                                     docTarefa.reference.parent.parent!.id;
 
-                                // FutureBuilder para obter as regras de cálculo e nome de cada grupo específico
+                                // FutureBuilder para obter as regras de cálculo e nome/foto de cada grupo
                                 return FutureBuilder<DocumentSnapshot>(
                                   future: FirebaseFirestore.instance
                                       .collection('grupos')
@@ -548,6 +557,7 @@ class _HomePageState extends State<HomePage> {
                                       .get(),
                                   builder: (context, grupoSnap) {
                                     String nomeGrupo = "Grupo";
+                                    String? fotoGrupoDaVez;
                                     int pontosMinuto = 1;
                                     int metaMaiorBonus = 0;
 
@@ -557,6 +567,8 @@ class _HomePageState extends State<HomePage> {
                                           grupoSnap.data!.data()
                                               as Map<String, dynamic>;
                                       nomeGrupo = dadosGrupo['nome'] ?? "Grupo";
+                                      fotoGrupoDaVez =
+                                          dadosGrupo['foto_grupo']; // Puxa a foto do grupo!
                                       pontosMinuto =
                                           (dadosGrupo['pontos_por_minuto'] ??
                                                   dadosGrupo['pontos_minuto'] ??
@@ -569,7 +581,7 @@ class _HomePageState extends State<HomePage> {
                                               .toInt();
                                     }
 
-                                    // Calcula os pontos em tempo real baseado no grupo de origem da tarefa
+                                    // Calcula os pontos em tempo real
                                     int totalPontosCalculados =
                                         (minutos * pontosMinuto) +
                                         (tipo == "Tarefa Maior"
@@ -584,6 +596,8 @@ class _HomePageState extends State<HomePage> {
                                       fotoUrl,
                                       nomeUsuario,
                                       nomeGrupo,
+                                      fotoGrupoUrl:
+                                          fotoGrupoDaVez, // Passa a foto do grupo para a mini bolinha
                                       provaUrl: provaUrl,
                                       descricao: descricao,
                                       tipoTarefa: tipo,
@@ -622,7 +636,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // SIDEBAR (DIREITA) - MEUS GRUPOS MANTIDA IGUAL
+            // SIDEBAR (DIREITA) - MEUS GRUPOS
             Container(
               width: 70,
               decoration: BoxDecoration(
@@ -675,6 +689,9 @@ class _HomePageState extends State<HomePage> {
                                     as Map<String, dynamic>;
                             String idDoGrupo = meusGrupos[index].id;
                             String nomeDoGrupo = dados['nome'] ?? "Sem nome";
+                            String? fotoDoGrupo =
+                                dados['foto_grupo']; // <-- Puxa a foto para a sidebar
+
                             return GestureDetector(
                               onTap: () {
                                 Navigator.push(
@@ -688,7 +705,10 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 );
                               },
-                              child: _buildCardGrupo(nomeDoGrupo),
+                              child: _buildCardGrupo(
+                                nomeDoGrupo,
+                                fotoDoGrupo,
+                              ), // <-- Atualizado
                             );
                           },
                         );
@@ -720,25 +740,30 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildCardGrupo(String nome) {
+  // --- ATUALIZADO: Renderiza a foto do grupo ---
+  Widget _buildCardGrupo(String nome, String? fotoUrl) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       width: 55,
       height: 55,
       decoration: BoxDecoration(
-        color: const Color(0xFF5A5A5A),
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 2),
       ),
-      child: Center(
-        child: Text(
-          nome.isNotEmpty ? nome.substring(0, 1).toUpperCase() : "?",
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+      child: CircleAvatar(
+        backgroundColor: const Color(0xFF5A5A5A),
+        radius: 25,
+        backgroundImage: _obterImagem(fotoUrl),
+        child: (fotoUrl == null || fotoUrl.isEmpty)
+            ? Text(
+                nome.isNotEmpty ? nome.substring(0, 1).toUpperCase() : "?",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              )
+            : null,
       ),
     );
   }

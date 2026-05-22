@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../controllers/imagem_controller.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // <-- Import da imagem com cache
+import '../controllers/imagem_controller.dart'; // <-- Import do controller do Cloudinary
 
 class CriacaoGrupoPage extends StatefulWidget {
   final bool isDark;
-
   const CriacaoGrupoPage({super.key, required this.isDark});
 
   @override
@@ -14,24 +13,30 @@ class CriacaoGrupoPage extends StatefulWidget {
 }
 
 class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
-  final _nomeCtrl = TextEditingController();
-  final _pontosMinutoCtrl = TextEditingController(text: "1");
-  final _metaMaiorCtrl = TextEditingController(text: "50");
-
-  String? urlFotoGrupo;
-  bool isUploading = false;
-  bool isSaving = false;
-
   Color get bgMain =>
       widget.isDark ? const Color(0xFF1D0000) : const Color(0xFFEAFaf1);
   Color get textMain => widget.isDark ? Colors.white : Colors.black;
   Color get pillBg => widget.isDark ? const Color(0xFF333333) : Colors.white;
 
+  final nomeController = TextEditingController();
+  final pontosMinutoController = TextEditingController(text: "1");
+  final metaMaiorController = TextEditingController();
+  final tituloSemanalController = TextEditingController();
+  final tituloTotalController = TextEditingController();
+
+  bool isLoading = false; // Variável para controlar o botão de loading
+
+  // --- VARIÁVEIS DA FOTO DO GRUPO ---
+  String? urlFotoGrupo;
+  bool isUploading = false;
+
   @override
   void dispose() {
-    _nomeCtrl.dispose();
-    _pontosMinutoCtrl.dispose();
-    _metaMaiorCtrl.dispose();
+    nomeController.dispose();
+    pontosMinutoController.dispose();
+    metaMaiorController.dispose();
+    tituloSemanalController.dispose();
+    tituloTotalController.dispose();
     super.dispose();
   }
 
@@ -57,7 +62,7 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Upload cancelado."),
+            content: Text("Upload cancelado ou falhou."),
             backgroundColor: Colors.red,
           ),
         );
@@ -65,64 +70,62 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
     }
   }
 
-  // --- LÓGICA DE CRIAÇÃO NO FIREBASE ---
+  // --- LÓGICA REAL AO FIREBASE ---
   Future<void> _criarGrupo() async {
-    if (_nomeCtrl.text.trim().isEmpty) {
+    if (nomeController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("O nome do grupo é obrigatório!"),
-          backgroundColor: Colors.amber,
-        ),
+        const SnackBar(content: Text("O nome do grupo é obrigatório!")),
       );
       return;
     }
 
-    setState(() => isSaving = true);
+    setState(() => isLoading = true);
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception("Usuário não logado!");
 
-      // 1. Busca os dados do criador (para ele já entrar no ranking com a foto certa)
-      var userDoc = await FirebaseFirestore.instance
-          .collection('usuarios')
-          .doc(user.uid)
-          .get();
-      String nomeCriador = "Líder";
-      String fotoCriador = "";
-      if (userDoc.exists) {
-        var data = userDoc.data() as Map<String, dynamic>;
-        nomeCriador = data['nome_exibicao'] ?? data['nome'] ?? "Líder";
-        fotoCriador = data['url_perfil'] ?? "";
-      }
-
-      int ptsMinuto = int.tryParse(_pontosMinutoCtrl.text) ?? 1;
-      int metaMaior = int.tryParse(_metaMaiorCtrl.text) ?? 50;
-
-      // 2. Cria o documento principal do Grupo
-      var grupoRef = await FirebaseFirestore.instance.collection('grupos').add({
-        'nome': _nomeCtrl.text.trim(),
-        'foto_grupo': urlFotoGrupo ?? "",
-        'pontos_por_minuto': ptsMinuto,
-        'pontos_meta_maior': metaMaior,
-        'membros_ids': [
-          user.uid,
-        ], // Já coloca você na lista de IDs pra aparecer na Home!
-        'criador_id': user.uid,
+      // 1. Cria o documento do Grupo na coleção 'grupos'
+      DocumentReference
+      novoGrupoRef = await FirebaseFirestore.instance.collection('grupos').add({
+        'nome': nomeController.text.trim(),
+        'foto_grupo': urlFotoGrupo ?? "", // <-- SALVANDO A FOTO DO GRUPO AQUI!
+        'pontos_minuto': int.tryParse(pontosMinutoController.text.trim()) ?? 1,
+        'meta_maior': int.tryParse(metaMaiorController.text.trim()) ?? 0,
+        'titulo_semanal': tituloSemanalController.text.trim(),
+        'titulo_total': tituloTotalController.text.trim(),
+        'criador_id': user?.uid,
         'data_criacao': FieldValue.serverTimestamp(),
+        // A MÁGICA AQUI: Garante que o criador já comece na lista de membros do grupo!
+        'membros_ids': [user?.uid],
       });
 
-      // 3. Cria o perfil do criador dentro do Ranking (Coleção 'membros')
-      await grupoRef.collection('membros').doc(user.uid).set({
-        'nome': nomeCriador,
-        'fotoPerfil': fotoCriador,
-        'pontosSemanais': 0,
-        'pontosTotais': 0,
-        'atividadesMaioresSemanais': 0,
-        'atividadesMaioresTotais': 0,
-        'cargo': 'lider',
-        'data_entrada': FieldValue.serverTimestamp(),
-      });
+      // 2. Adiciona o utilizador atual como o primeiro membro na subcoleção 'membros'
+      if (user != null) {
+        // Vai buscar o nome e foto do utilizador para guardar no grupo
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('usuarios')
+            .doc(user.uid)
+            .get();
+        String nomeExibicao = "Líder";
+        String fotoUrl = "";
+
+        if (userDoc.exists) {
+          var dados = userDoc.data() as Map<String, dynamic>;
+          nomeExibicao = dados['nome_exibicao'] ?? dados['nome'] ?? "Líder";
+          fotoUrl = dados['url_perfil'] ?? dados['foto_url'] ?? "";
+        }
+
+        await novoGrupoRef.collection('membros').doc(user.uid).set({
+          'nome': nomeExibicao,
+          'fotoPerfil': fotoUrl,
+          'pontosSemanais': 0,
+          'pontosTotais': 0,
+          'atividadesMaioresSemanais': 0,
+          'atividadesMaioresTotais': 0,
+          'cargo': 'admin', // Identifica o criador do grupo
+          'data_entrada': FieldValue.serverTimestamp(),
+        });
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -131,173 +134,193 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context); // Volta para a tela anterior
+        Navigator.pop(context); // Regressa à HomePage
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Erro ao criar: $e"),
+          const SnackBar(
+            content: Text("Erro ao criar o grupo. Tente novamente."),
             backgroundColor: Colors.red,
           ),
         );
       }
     } finally {
-      if (mounted) setState(() => isSaving = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
-  // --- WIDGETS DA TELA ---
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: bgMain,
-      appBar: AppBar(
-        backgroundColor: widget.isDark ? const Color(0xFF4A0000) : Colors.green,
-        title: const Text(
-          "Criar Novo Grupo",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: bgMain,
+        appBar: AppBar(
+          backgroundColor: widget.isDark
+              ? const Color(0xFF4A0000)
+              : Colors.green,
+          title: const Text(
+            "Criar Novo Grupo",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
+          bottom: const TabBar(
+            indicatorColor: Colors.white,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white54,
+            tabs: [
+              Tab(text: "Config. Básica", icon: Icon(Icons.settings)),
+              Tab(text: "Medalhas", icon: Icon(Icons.military_tech)),
+            ],
+          ),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        body: TabBarView(children: [_buildAbaBasico(), _buildAbaMedalhas()]),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(25),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 10),
+    );
+  }
 
-            // --- FOTO DO GRUPO (CLICÁVEL) ---
-            GestureDetector(
-              onTap: isUploading ? null : _escolherImagem,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CircleAvatar(
-                    radius: 65,
-                    backgroundColor: widget.isDark
-                        ? Colors.white10
-                        : Colors.black12,
-                    backgroundImage: urlFotoGrupo != null
-                        ? CachedNetworkImageProvider(urlFotoGrupo!)
-                        : null,
-                    child: urlFotoGrupo == null
-                        ? Icon(
-                            Icons.groups,
-                            size: 60,
-                            color: textMain.withOpacity(0.5),
-                          )
-                        : null,
-                  ),
-                  if (isUploading)
-                    const CircularProgressIndicator(color: Colors.greenAccent),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: widget.isDark ? Colors.red[700] : Colors.green,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: bgMain, width: 3),
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 20,
-                      ),
+  Widget _buildAbaBasico() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.center, // Centralizado pro Avatar ficar bonito
+        children: [
+          const SizedBox(height: 10),
+
+          // --- FOTO DO GRUPO (CLICÁVEL) ---
+          GestureDetector(
+            onTap: isUploading ? null : _escolherImagem,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 55,
+                  backgroundColor: widget.isDark
+                      ? Colors.white10
+                      : Colors.black12,
+                  backgroundImage: urlFotoGrupo != null
+                      ? CachedNetworkImageProvider(urlFotoGrupo!)
+                      : null,
+                  child: urlFotoGrupo == null
+                      ? Icon(
+                          Icons.groups,
+                          size: 50,
+                          color: textMain.withOpacity(0.5),
+                        )
+                      : null,
+                ),
+                if (isUploading)
+                  const CircularProgressIndicator(color: Colors.greenAccent),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: widget.isDark ? Colors.red[700] : Colors.green,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: bgMain, width: 3),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: 18,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(height: 15),
-            Text(
-              "Foto do Grupo (Opcional)",
-              style: TextStyle(color: textMain.withOpacity(0.6), fontSize: 14),
+          ),
+          const SizedBox(height: 20),
+
+          // Volta a alinhar o resto na esquerda
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _buildLabel("Nome do Grupo"),
+          ),
+          _buildTextField(nomeController, "Ex: Os Aprovados"),
+
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _buildLabel("Pontos por minuto investido (Padrão: 1)"),
+          ),
+          _buildTextField(pontosMinutoController, "1", isNumber: true),
+
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _buildLabel("Pontos de uma Meta Maior (Ex: Simulado)"),
+          ),
+          _buildTextField(metaMaiorController, "Ex: 500", isNumber: true),
+
+          const SizedBox(height: 40),
+          _buildBotaoCriar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAbaMedalhas() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.amber.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.amber),
             ),
-            const SizedBox(height: 35),
-
-            // --- CAMPOS DE TEXTO ---
-            _buildLabel("Nome do Grupo"),
-            _buildTextField("Ex: Feras do ENEM, Devs de Sucesso...", _nomeCtrl),
-
-            const SizedBox(height: 25),
-            const Divider(color: Colors.grey),
-            const SizedBox(height: 15),
-
-            Text(
-              "⚙️ Regras de Pontuação",
-              style: TextStyle(
-                color: textMain,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 15),
-
-            _buildLabel("Pontos por minuto investido (Padrão: 1)"),
-            _buildTextField("Ex: 1", _pontosMinutoCtrl, isNumber: true),
-
-            const SizedBox(height: 15),
-
-            _buildLabel("Bônus por Tarefa Maior (Padrão: 50 pts)"),
-            _buildTextField("Ex: 50", _metaMaiorCtrl, isNumber: true),
-
-            const SizedBox(height: 40),
-
-            // --- BOTÃO DE CRIAR ---
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.isDark
-                      ? Colors.red[700]
-                      : Colors.green,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
+            child: Row(
+              children: [
+                const Icon(Icons.emoji_events, color: Colors.amber),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "Estes nomes aparecerão no ranking. O criador ou líder pode alterar depois.",
+                    style: TextStyle(color: textMain, fontSize: 12),
                   ),
                 ),
-                onPressed: isSaving ? null : _criarGrupo,
-                child: isSaving
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        "Criar Grupo",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 20),
+
+          _buildLabel("Título do Top 1 Semanal"),
+          _buildTextField(tituloSemanalController, "Ex: O Sabichão da Semana"),
+
+          _buildLabel("Título do Top 1 Total"),
+          _buildTextField(tituloTotalController, "Ex: O Grande Mestre"),
+
+          const SizedBox(height: 40),
+          _buildBotaoCriar(),
+        ],
       ),
     );
   }
 
   Widget _buildLabel(String text) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: textMain,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, top: 15),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: textMain,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
         ),
       ),
     );
   }
 
   Widget _buildTextField(
-    String hint,
-    TextEditingController controller, {
+    TextEditingController controller,
+    String hint, {
     bool isNumber = false,
   }) {
     return Container(
@@ -319,6 +342,32 @@ class _CriacaoGrupoPageState extends State<CriacaoGrupoPage> {
             vertical: 15,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildBotaoCriar() {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: widget.isDark ? Colors.red[700] : Colors.green,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+        ),
+        onPressed: isLoading ? null : _criarGrupo,
+        child: isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text(
+                "Criar Grupo",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
