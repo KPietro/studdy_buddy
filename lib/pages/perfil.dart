@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // <-- Para ler o tema
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import '../controllers/imagem_controller.dart';
+import '../controllers/settings_controller.dart'; // <-- Para ler o tema
 
 class PerfilPage extends StatefulWidget {
   const PerfilPage({super.key});
@@ -21,10 +23,6 @@ class _PerfilPageState extends State<PerfilPage> {
 
   bool _isEditing = false;
   bool _isUploadingAvatar = false;
-
-  final Color figmaVinhoEscuro = const Color(0xFF1D0000);
-  final Color figmaInputFill = const Color(0xFF2D0505);
-  final Color botaoVermelho = const Color(0xFFDA2B2B);
 
   // --- LÓGICA DE IMAGEM ---
 
@@ -58,12 +56,18 @@ class _PerfilPageState extends State<PerfilPage> {
 
   // --- SELETOR DE ESTILO ---
 
-  void _mostrarSeletorCustomizado(Color corAtual) {
+  void _mostrarSeletorCustomizado(Color corAtual, bool isDark) {
     Color corSelecionada = corAtual;
+
+    // Cores dinâmicas para o Modal
+    Color modalBg = isDark ? const Color(0xFF1D0000) : const Color(0xFFEAFaf1);
+    Color modalText = isDark ? Colors.white : Colors.black87;
+    Color modalContainer = isDark ? const Color(0xFF2D0505) : Colors.white;
+    Color btnColor = isDark ? const Color(0xFFDA2B2B) : Colors.green[700]!;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: figmaVinhoEscuro,
+      backgroundColor: modalBg,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
@@ -86,21 +90,21 @@ class _PerfilPageState extends State<PerfilPage> {
                       width: 40,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: Colors.white24,
+                        color: isDark ? Colors.white24 : Colors.black12,
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                     const SizedBox(height: 25),
-                    const Text(
+                    Text(
                       "Personalizar Estilo",
                       style: TextStyle(
-                        color: Colors.white,
+                        color: modalText,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 30),
-                    _buildModalLabel("Avatar ou Galeria"),
+                    _buildModalLabel("Avatar ou Galeria", isDark),
                     const SizedBox(height: 15),
                     SizedBox(
                       height: 90,
@@ -108,7 +112,7 @@ class _PerfilPageState extends State<PerfilPage> {
                         scrollDirection: Axis.horizontal,
                         itemCount: 5,
                         itemBuilder: (context, index) {
-                          if (index == 0) return _buildGaleriaButton();
+                          if (index == 0) return _buildGaleriaButton(isDark);
                           String path = "assets/Avatares/Avatar$index.png";
                           return GestureDetector(
                             onTap: () {
@@ -124,7 +128,9 @@ class _PerfilPageState extends State<PerfilPage> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.white10,
+                                  color: isDark
+                                      ? Colors.white10
+                                      : Colors.black12,
                                   width: 2,
                                 ),
                               ),
@@ -138,34 +144,64 @@ class _PerfilPageState extends State<PerfilPage> {
                       ),
                     ),
                     const SizedBox(height: 40),
-                    _buildModalLabel("Cor de Identidade"),
+                    _buildModalLabel("Cor de Identidade", isDark),
                     const SizedBox(height: 15),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: figmaInputFill,
+                        color: modalContainer,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white10),
+                        border: Border.all(
+                          color: isDark ? Colors.white10 : Colors.transparent,
+                        ),
+                        boxShadow: isDark
+                            ? null
+                            : [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                       ),
                       child: Theme(
-                        data: ThemeData.dark().copyWith(
-                          inputDecorationTheme: InputDecorationTheme(
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 12,
-                            ),
-                            filled: true,
-                            fillColor: Colors.black26,
-                            labelStyle: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
+                        data: isDark
+                            ? ThemeData.dark().copyWith(
+                                inputDecorationTheme: InputDecorationTheme(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                    horizontal: 12,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.black26,
+                                  labelStyle: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              )
+                            : ThemeData.light().copyWith(
+                                inputDecorationTheme: InputDecorationTheme(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                    horizontal: 12,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[200],
+                                  labelStyle: const TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 12,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
                         child: ColorPicker(
                           pickerColor: corSelecionada,
                           onColorChanged: (Color color) {
@@ -189,8 +225,12 @@ class _PerfilPageState extends State<PerfilPage> {
                         Expanded(
                           child: OutlinedButton(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white70,
-                              side: const BorderSide(color: Colors.white24),
+                              foregroundColor: isDark
+                                  ? Colors.white70
+                                  : Colors.black54,
+                              side: BorderSide(
+                                color: isDark ? Colors.white24 : Colors.black26,
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 15),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -210,13 +250,13 @@ class _PerfilPageState extends State<PerfilPage> {
                         Expanded(
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: botaoVermelho,
+                              backgroundColor: btnColor,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 15),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              elevation: 0,
+                              elevation: isDark ? 0 : 3,
                             ),
                             onPressed: () {
                               String hexString =
@@ -245,7 +285,7 @@ class _PerfilPageState extends State<PerfilPage> {
     );
   }
 
-  Widget _buildGaleriaButton() {
+  Widget _buildGaleriaButton(bool isDark) {
     return GestureDetector(
       onTap: () async {
         Navigator.pop(context);
@@ -256,14 +296,17 @@ class _PerfilPageState extends State<PerfilPage> {
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white10, width: 2),
+          border: Border.all(
+            color: isDark ? Colors.white10 : Colors.black12,
+            width: 2,
+          ),
         ),
-        child: const CircleAvatar(
+        child: CircleAvatar(
           radius: 38,
-          backgroundColor: Color(0xFF3A0A0A),
+          backgroundColor: isDark ? const Color(0xFF3A0A0A) : Colors.grey[200],
           child: Icon(
             Icons.add_photo_alternate,
-            color: Colors.white70,
+            color: isDark ? Colors.white70 : Colors.black54,
             size: 30,
           ),
         ),
@@ -271,12 +314,12 @@ class _PerfilPageState extends State<PerfilPage> {
     );
   }
 
-  Widget _buildModalLabel(String text) => Align(
+  Widget _buildModalLabel(String text, bool isDark) => Align(
     alignment: Alignment.centerLeft,
     child: Text(
       text.toUpperCase(),
-      style: const TextStyle(
-        color: Colors.white38,
+      style: TextStyle(
+        color: isDark ? Colors.white38 : Colors.black45,
         fontSize: 11,
         fontWeight: FontWeight.bold,
         letterSpacing: 1.2,
@@ -339,8 +382,34 @@ class _PerfilPageState extends State<PerfilPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Leitura do Tema
+    final settings = Provider.of<SettingsController>(context);
+    final bool isDark = settings.isDarkMode;
+
+    // Cores Dinâmicas
+    final Color bgMain = isDark
+        ? const Color(0xFF1D0000)
+        : const Color(0xFFEAFaf1);
+    final Color cardBg = isDark ? const Color(0xFF2D0505) : Colors.white;
+    final Color textMain = isDark ? Colors.white : Colors.black87;
+    final Color textSec = isDark ? Colors.white70 : Colors.black54;
+    final Color btnColor = isDark
+        ? const Color(0xFFDA2B2B)
+        : Colors.green[700]!;
+
+    // Sombra para o Tema Claro
+    final List<BoxShadow>? shadowClara = isDark
+        ? null
+        : [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ];
+
     return Scaffold(
-      backgroundColor: figmaVinhoEscuro,
+      backgroundColor: bgMain,
       body: StreamBuilder<DocumentSnapshot>(
         stream: _firestore.collection('usuarios').doc(user!.uid).snapshots(),
         builder: (context, snapshot) {
@@ -352,10 +421,10 @@ class _PerfilPageState extends State<PerfilPage> {
 
           var dados = snapshot.data!.data() as Map<String, dynamic>?;
           if (dados == null) {
-            return const Center(
+            return Center(
               child: Text(
                 "Usuário não encontrado",
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: textMain),
               ),
             );
           }
@@ -398,11 +467,13 @@ class _PerfilPageState extends State<PerfilPage> {
                         top: 40,
                         left: 20,
                         child: CircleAvatar(
-                          backgroundColor: const Color(0xFFB30000),
+                          backgroundColor: isDark
+                              ? const Color(0xFFB30000)
+                              : Colors.white,
                           child: IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.arrow_back,
-                              color: Colors.black,
+                              color: isDark ? Colors.black : Colors.black87,
                             ),
                             onPressed: () => Navigator.pop(context),
                           ),
@@ -411,30 +482,39 @@ class _PerfilPageState extends State<PerfilPage> {
                       Positioned(
                         bottom: 0,
                         child: GestureDetector(
-                          onTap: () => _mostrarSeletorCustomizado(corDinamica),
-                          child: CircleAvatar(
-                            radius: 55,
-                            backgroundColor: Colors.white,
+                          onTap: () =>
+                              _mostrarSeletorCustomizado(corDinamica, isDark),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: shadowClara, // Sombra suave no avatar
+                            ),
                             child: CircleAvatar(
-                              radius: 52,
-                              backgroundColor: corDinamica,
-                              backgroundImage: _obterProvedorDeImagem(fotoUrl),
-                              child: _isUploadingAvatar
-                                  ? const CircularProgressIndicator(
-                                      color: Colors.white,
-                                    )
-                                  : (fotoUrl == null || fotoUrl.isEmpty)
-                                  ? Text(
-                                      nome.isNotEmpty
-                                          ? nome[0].toUpperCase()
-                                          : "?",
-                                      style: const TextStyle(
-                                        fontSize: 45,
+                              radius: 55,
+                              backgroundColor: Colors.white,
+                              child: CircleAvatar(
+                                radius: 52,
+                                backgroundColor: corDinamica,
+                                backgroundImage: _obterProvedorDeImagem(
+                                  fotoUrl,
+                                ),
+                                child: _isUploadingAvatar
+                                    ? const CircularProgressIndicator(
                                         color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    )
-                                  : null,
+                                      )
+                                    : (fotoUrl == null || fotoUrl.isEmpty)
+                                    ? Text(
+                                        nome.isNotEmpty
+                                            ? nome[0].toUpperCase()
+                                            : "?",
+                                        style: const TextStyle(
+                                          fontSize: 45,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : null,
+                              ),
                             ),
                           ),
                         ),
@@ -449,37 +529,36 @@ class _PerfilPageState extends State<PerfilPage> {
                         child: TextField(
                           controller: _nomeController,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                          ),
-                          decoration: const InputDecoration(
+                          style: TextStyle(color: textMain, fontSize: 22),
+                          decoration: InputDecoration(
                             enabledBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: Colors.red),
+                              borderSide: BorderSide(color: btnColor),
                             ),
                           ),
                         ),
                       )
                     : Text(
                         nome,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: textMain,
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
 
                 const SizedBox(height: 30),
-                _buildSectionTitle("Biografia"),
+                _buildSectionTitle("Biografia", textMain),
                 _buildContainerBox(
                   isEditing: _isEditing,
+                  isDark: isDark,
+                  cardBg: cardBg,
+                  shadowClara: shadowClara,
+                  btnColor: btnColor,
                   child: TextField(
                     controller: _bioController,
                     enabled: _isEditing,
                     maxLines: 3,
-                    style: TextStyle(
-                      color: _isEditing ? Colors.white : Colors.white70,
-                    ),
+                    style: TextStyle(color: _isEditing ? textMain : textSec),
                     decoration: const InputDecoration(
                       border: InputBorder.none,
                       hintText: "Escreva algo...",
@@ -492,7 +571,9 @@ class _PerfilPageState extends State<PerfilPage> {
                   child: _isEditing
                       ? ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: botaoVermelho,
+                            backgroundColor: btnColor,
+                            elevation: isDark ? 0 : 3,
+                            foregroundColor: Colors.white,
                           ),
                           onPressed: () async {
                             await _firestore
@@ -504,19 +585,31 @@ class _PerfilPageState extends State<PerfilPage> {
                                 });
                             setState(() => _isEditing = false);
                           },
-                          child: const Text("Salvar Alterações"),
+                          child: const Text(
+                            "Salvar Alterações",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         )
                       : OutlinedButton(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
+                            foregroundColor: textMain,
+                            side: BorderSide(
+                              color: isDark ? Colors.white24 : Colors.black12,
+                            ),
                           ),
                           onPressed: () => setState(() => _isEditing = true),
                           child: const Text("Editar Perfil"),
                         ),
                 ),
 
-                _buildSectionTitle("Atividade (Últimos 30 dias)"),
-                _buildGraficoMensal(corDinamica, tarefasIds.hashCode),
+                _buildSectionTitle("Atividade (Últimos 30 dias)", textMain),
+                _buildGraficoMensal(
+                  corDinamica,
+                  tarefasIds.hashCode,
+                  isDark,
+                  cardBg,
+                  shadowClara,
+                ),
                 const SizedBox(height: 50),
               ],
             ),
@@ -526,14 +619,14 @@ class _PerfilPageState extends State<PerfilPage> {
     );
   }
 
-  Widget _buildSectionTitle(String title) => Padding(
+  Widget _buildSectionTitle(String title, Color textColor) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
     child: Align(
       alignment: Alignment.centerLeft,
       child: Text(
         title,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: textColor,
           fontSize: 16,
           fontWeight: FontWeight.bold,
         ),
@@ -541,21 +634,40 @@ class _PerfilPageState extends State<PerfilPage> {
     ),
   );
 
-  Widget _buildContainerBox({required Widget child, bool isEditing = false}) =>
-      Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: isEditing ? const Color(0xFF3A0A0A) : figmaInputFill,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: isEditing ? botaoVermelho : Colors.white10),
-        ),
-        child: child,
-      );
+  Widget _buildContainerBox({
+    required Widget child,
+    required bool isEditing,
+    required bool isDark,
+    required Color cardBg,
+    required List<BoxShadow>? shadowClara,
+    required Color btnColor,
+  }) => Container(
+    margin: const EdgeInsets.symmetric(horizontal: 20),
+    padding: const EdgeInsets.all(15),
+    decoration: BoxDecoration(
+      color: isEditing
+          ? (isDark ? const Color(0xFF3A0A0A) : Colors.green[50])
+          : cardBg,
+      borderRadius: BorderRadius.circular(15),
+      boxShadow: shadowClara,
+      border: Border.all(
+        color: isEditing
+            ? btnColor
+            : (isDark ? Colors.white10 : Colors.transparent),
+      ),
+    ),
+    child: child,
+  );
 
-  // --- NOVO MÉTODO DO GRÁFICO REESTRUTURADO E ARRASTÁVEL ---
+  // --- GRÁFICO REESTRUTURADO E ARRASTÁVEL (MANTIDO 100%) ---
 
-  Widget _buildGraficoMensal(Color corBarras, int hashKey) {
+  Widget _buildGraficoMensal(
+    Color corBarras,
+    int hashKey,
+    bool isDark,
+    Color cardBg,
+    List<BoxShadow>? shadowClara,
+  ) {
     return FutureBuilder<List<double>>(
       key: ValueKey(hashKey),
       future: _processarTarefas(),
@@ -565,8 +677,9 @@ class _PerfilPageState extends State<PerfilPage> {
             margin: const EdgeInsets.symmetric(horizontal: 20),
             height: 240,
             decoration: BoxDecoration(
-              color: figmaInputFill,
+              color: cardBg,
               borderRadius: BorderRadius.circular(15),
+              boxShadow: shadowClara,
             ),
             child: const Center(
               child: CircularProgressIndicator(color: Colors.red),
@@ -578,7 +691,6 @@ class _PerfilPageState extends State<PerfilPage> {
         double maxMinutos = valores.reduce((a, b) => a > b ? a : b);
         if (maxMinutos == 0) maxMinutos = 1.0;
 
-        // Reconstruindo a janela de tempo local para gerar os rótulos corretos sob as barras
         DateTime agora = DateTime.now();
         DateTime hojeMeiaNoite = DateTime(agora.year, agora.month, agora.day);
         DateTime inicioFiltro = hojeMeiaNoite.subtract(
@@ -588,12 +700,14 @@ class _PerfilPageState extends State<PerfilPage> {
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 20),
           padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 5),
-          height:
-              240, // Aumentado ligeiramente para comportar os rótulos com folga
+          height: 240,
           decoration: BoxDecoration(
-            color: figmaInputFill,
+            color: cardBg,
             borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.white10),
+            boxShadow: shadowClara,
+            border: Border.all(
+              color: isDark ? Colors.white10 : Colors.transparent,
+            ),
           ),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -604,30 +718,25 @@ class _PerfilPageState extends State<PerfilPage> {
                 int idx = entry.key;
                 double v = entry.value;
 
-                // Calcula o dia específico para a label da barra atual
                 DateTime dataBarra = inicioFiltro.add(Duration(days: idx));
                 String labelDia = DateFormat('dd/MM').format(dataBarra);
-
-                // Define a altura máxima física da barra em 130px
                 double alturaCalculada = (v / maxMinutos) * 130;
-
-                // Destaca de forma negritada caso a barra mapeada represente o dia de hoje
                 bool ehHoje =
                     dataBarra.day == agora.day &&
                     dataBarra.month == agora.month;
 
                 return Container(
-                  width:
-                      48, // Largura fixa confortável por coluna para garantir a rolagem lateral perfeita
+                  width: 48,
                   margin: const EdgeInsets.symmetric(horizontal: 2),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      // Texto contendo a minutagem acima da barra física
                       Text(
                         v > 0 ? "${v.toInt()}m" : "-",
                         style: TextStyle(
-                          color: v > 0 ? Colors.white : Colors.white24,
+                          color: v > 0
+                              ? (isDark ? Colors.white : Colors.black87)
+                              : (isDark ? Colors.white24 : Colors.black26),
                           fontSize: 10,
                           fontWeight: v > 0
                               ? FontWeight.bold
@@ -635,24 +744,27 @@ class _PerfilPageState extends State<PerfilPage> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      // Estrutura visual da barra
                       Container(
-                        width:
-                            8, // Largura ideal da barra para visualização mobile
+                        width: 8,
                         height: alturaCalculada > 0 ? alturaCalculada : 2,
                         decoration: BoxDecoration(
-                          color: v > 0 ? corBarras : Colors.white10,
+                          color: v > 0
+                              ? corBarras
+                              : (isDark ? Colors.white10 : Colors.black12),
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      // Rótulo da data abaixo da barra física
                       Text(
                         labelDia,
                         style: TextStyle(
                           color: ehHoje
                               ? corBarras
-                              : (v > 0 ? Colors.white70 : Colors.white38),
+                              : (v > 0
+                                    ? (isDark ? Colors.white70 : Colors.black87)
+                                    : (isDark
+                                          ? Colors.white38
+                                          : Colors.black54)),
                           fontSize: 9,
                           fontWeight: ehHoje
                               ? FontWeight.bold
