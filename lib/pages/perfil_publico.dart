@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import '../controllers/settings_controller.dart';
 
 class PerfilPublicoPage extends StatefulWidget {
-  final String userId; // Recebe o ID do usuário que estamos visitando
+  final String userId;
 
   const PerfilPublicoPage({super.key, required this.userId});
 
@@ -47,7 +47,6 @@ class _PerfilPublicoPageState extends State<PerfilPublicoPage> {
     }
 
     try {
-      // Puxa as tarefas APENAS desse usuário específico
       QuerySnapshot tarefasQuery = await _firestore
           .collectionGroup('tarefas')
           .where('criador_id', isEqualTo: widget.userId)
@@ -127,7 +126,6 @@ class _PerfilPublicoPageState extends State<PerfilPublicoPage> {
             );
           }
 
-          // Bloqueio de Segurança: Se enquanto estiver na tela a pessoa privar o perfil, o app avisa!
           bool perfilPrivado = dados['perfil_privado'] ?? false;
           if (perfilPrivado) {
             return Center(
@@ -251,46 +249,6 @@ class _PerfilPublicoPageState extends State<PerfilPublicoPage> {
                   bio,
                   style: TextStyle(color: textSec, fontSize: 14),
                   textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 25),
-
-                // --- BOTÃO DE CHAT PRIVADO (LUCAS) ---
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: btnColor,
-                    elevation: isDark ? 0 : 3,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 30,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          "Chat Privado com $nome em desenvolvimento pelo Lucas! 🚧",
-                        ),
-                      ),
-                    );
-                    // Futuramente o Lucas coloca a rota aqui:
-                    // Navigator.push(context, MaterialPageRoute(builder: (_) => ChatPrivadoPage(targetUserId: widget.userId)));
-                  },
-                  icon: const Icon(
-                    Icons.chat_bubble_outline,
-                    color: Colors.white,
-                  ),
-                  label: const Text(
-                    "Mandar Mensagem",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
                 ),
 
                 const SizedBox(height: 30),

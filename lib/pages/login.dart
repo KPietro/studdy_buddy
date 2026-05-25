@@ -13,16 +13,13 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool isLoadingTheme = true;
-  bool isLoggingIn = false; // Para o loading do botão
+  bool isLoggingIn = false;
 
   final emailController = TextEditingController();
   final senhaController = TextEditingController();
 
-  // Cores ajustadas: Vermelho do seu código original
   final Color figmaVinhoEscuro = const Color(0xFF1D0000);
-  final Color botaoVermelho = const Color(
-    0xFFDA2B2B,
-  ); // O vermelho que você enviou
+  final Color botaoVermelho = const Color(0xFFDA2B2B);
   final Color figmaInputFill = const Color(0xFF2D0505);
 
   @override
@@ -36,13 +33,6 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => isLoadingTheme = false);
   }
 
-  void toggleTheme() async {
-    ThemeController.isDark = !ThemeController.isDark;
-    await ThemeController.saveTheme(ThemeController.isDark);
-    setState(() {});
-  }
-
-  // Lógica de Login integrada
   Future<void> login() async {
     if (emailController.text.isEmpty || senhaController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -66,10 +56,11 @@ class _LoginPageState extends State<LoginPage> {
       }
     } on FirebaseAuthException catch (e) {
       String erro = "E-mail ou senha incorretos.";
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(erro)));
+      }
     } finally {
       if (mounted) setState(() => isLoggingIn = false);
     }
@@ -109,17 +100,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
             ),
-            Positioned(
-              top: 40,
-              right: 20,
-              child: IconButton(
-                onPressed: toggleTheme,
-                icon: Icon(
-                  isDark ? Icons.light_mode : Icons.dark_mode,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+            // O BOTÃO DE TEMA FOI REMOVIDO DAQUI
             Center(
               child: SingleChildScrollView(
                 child: Column(
@@ -144,7 +125,6 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     const SizedBox(height: 25),
-                    // Cartão
                     Container(
                       width: 330,
                       padding: const EdgeInsets.symmetric(
@@ -174,7 +154,6 @@ class _LoginPageState extends State<LoginPage> {
                             isPass: true,
                           ),
                           const SizedBox(height: 20),
-                          // Botão Principal Vermelho
                           SizedBox(
                             width: double.infinity,
                             height: 55,

@@ -71,10 +71,7 @@ class _ChatPageState extends State<ChatPage> {
       if (userDoc.exists) {
         var dados = userDoc.data() as Map<String, dynamic>;
 
-        nomeExibicao =
-            dados['nome_exibicao'] ??
-            dados['nome'] ??
-            nomeExibicao;
+        nomeExibicao = dados['nome_exibicao'] ?? dados['nome'] ?? nomeExibicao;
       }
     } catch (e) {
       debugPrint("Erro ao buscar nome: $e");
@@ -91,15 +88,13 @@ class _ChatPageState extends State<ChatPage> {
           "timestamp": FieldValue.serverTimestamp(),
 
           // RESPOSTA
-          "respondendoTexto":
-              mensagemRespondendo != null
-                  ? mensagemRespondendo!["texto"] ?? ""
-                  : "",
+          "respondendoTexto": mensagemRespondendo != null
+              ? mensagemRespondendo!["texto"] ?? ""
+              : "",
 
-          "respondendoNome":
-              mensagemRespondendo != null
-                  ? mensagemRespondendo!["nome"] ?? ""
-                  : "",
+          "respondendoNome": mensagemRespondendo != null
+              ? mensagemRespondendo!["nome"] ?? ""
+              : "",
 
           // MIDIA
           "imagemUrl": "",
@@ -142,17 +137,13 @@ class _ChatPageState extends State<ChatPage> {
       if (userDoc.exists) {
         var dados = userDoc.data() as Map<String, dynamic>;
 
-        nomeExibicao =
-            dados['nome_exibicao'] ??
-            dados['nome'] ??
-            nomeExibicao;
+        nomeExibicao = dados['nome_exibicao'] ?? dados['nome'] ?? nomeExibicao;
       }
     } catch (_) {}
 
     final arquivo = File(imagem.path);
 
-    final nomeArquivo =
-        DateTime.now().millisecondsSinceEpoch.toString();
+    final nomeArquivo = DateTime.now().millisecondsSinceEpoch.toString();
 
     final ref = FirebaseStorage.instance
         .ref()
@@ -173,15 +164,13 @@ class _ChatPageState extends State<ChatPage> {
           "nome": nomeExibicao,
           "timestamp": FieldValue.serverTimestamp(),
 
-          "respondendoTexto":
-              mensagemRespondendo != null
-                  ? mensagemRespondendo!["texto"] ?? ""
-                  : "",
+          "respondendoTexto": mensagemRespondendo != null
+              ? mensagemRespondendo!["texto"] ?? ""
+              : "",
 
-          "respondendoNome":
-              mensagemRespondendo != null
-                  ? mensagemRespondendo!["nome"] ?? ""
-                  : "",
+          "respondendoNome": mensagemRespondendo != null
+              ? mensagemRespondendo!["nome"] ?? ""
+              : "",
 
           "imagemUrl": url,
           "audioUrl": "",
@@ -198,63 +187,55 @@ class _ChatPageState extends State<ChatPage> {
   // AUDIO
   // =========================
 
-Future<void> gravarAudio() async {
-  if (!gravando) {
-    if (await recorder.hasPermission()) {
-      final dir = await getTemporaryDirectory();
+  Future<void> gravarAudio() async {
+    if (!gravando) {
+      if (await recorder.hasPermission()) {
+        final dir = await getTemporaryDirectory();
 
-      final path =
-          '${dir.path}/${DateTime.now().millisecondsSinceEpoch}.m4a';
+        final path = '${dir.path}/${DateTime.now().millisecondsSinceEpoch}.m4a';
 
-      await recorder.start(
-        const RecordConfig(),
-        path: path,
-      );
+        await recorder.start(const RecordConfig(), path: path);
+
+        setState(() {
+          gravando = true;
+        });
+      }
+    } else {
+      final path = await recorder.stop();
 
       setState(() {
-        gravando = true;
+        gravando = false;
       });
+
+      if (path == null) return;
+
+      final user = FirebaseAuth.instance.currentUser;
+
+      final arquivo = File(path);
+
+      final nome = DateTime.now().millisecondsSinceEpoch.toString();
+
+      final ref = FirebaseStorage.instance.ref().child("audios").child(nome);
+
+      await ref.putFile(arquivo);
+
+      final url = await ref.getDownloadURL();
+
+      await FirebaseFirestore.instance
+          .collection("grupos")
+          .doc(widget.grupoId)
+          .collection("mensagens")
+          .add({
+            "texto": "",
+            "email": user?.email,
+            "nome": user?.email,
+            "timestamp": FieldValue.serverTimestamp(),
+            "imagemUrl": "",
+            "audioUrl": url,
+            "tipo": "audio",
+          });
     }
-  } else {
-    final path = await recorder.stop();
-
-    setState(() {
-      gravando = false;
-    });
-
-    if (path == null) return;
-
-    final user = FirebaseAuth.instance.currentUser;
-
-    final arquivo = File(path);
-
-    final nome =
-        DateTime.now().millisecondsSinceEpoch.toString();
-
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child("audios")
-        .child(nome);
-
-    await ref.putFile(arquivo);
-
-    final url = await ref.getDownloadURL();
-
-    await FirebaseFirestore.instance
-        .collection("grupos")
-        .doc(widget.grupoId)
-        .collection("mensagens")
-        .add({
-          "texto": "",
-          "email": user?.email,
-          "nome": user?.email,
-          "timestamp": FieldValue.serverTimestamp(),
-          "imagemUrl": "",
-          "audioUrl": url,
-          "tipo": "audio",
-        });
   }
-}
 
   // =========================
   // FORMATAR HORA
@@ -324,7 +305,6 @@ Future<void> gravarAudio() async {
           // =========================
           // MENSAGENS
           // =========================
-
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -336,9 +316,7 @@ Future<void> gravarAudio() async {
 
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 final mensagens = snapshot.data!.docs;
@@ -348,9 +326,7 @@ Future<void> gravarAudio() async {
                     child: Text(
                       "Nenhuma mensagem ainda. Diga olá!",
                       style: TextStyle(
-                        color: widget.isDark
-                            ? Colors.white54
-                            : Colors.black45,
+                        color: widget.isDark ? Colors.white54 : Colors.black45,
                         fontSize: 16,
                       ),
                     ),
@@ -366,16 +342,13 @@ Future<void> gravarAudio() async {
 
                     final texto = msg["texto"] ?? "";
 
-                    final emailOrigem =
-                        msg["email"] ?? "Usuário";
+                    final emailOrigem = msg["email"] ?? "Usuário";
 
-                    final nomeAmigavel =
-                        msg["nome"] ?? emailOrigem;
+                    final nomeAmigavel = msg["nome"] ?? emailOrigem;
 
                     final timestamp = msg["timestamp"];
 
-                    final bool minhaMensagem =
-                        emailOrigem == user?.email;
+                    final bool minhaMensagem = emailOrigem == user?.email;
 
                     return GestureDetector(
                       onLongPress: () {
@@ -390,13 +363,9 @@ Future<void> gravarAudio() async {
                             : Alignment.centerLeft,
 
                         child: Container(
-                          constraints: const BoxConstraints(
-                            maxWidth: 320,
-                          ),
+                          constraints: const BoxConstraints(maxWidth: 320),
 
-                          margin: const EdgeInsets.only(
-                            bottom: 10,
-                          ),
+                          margin: const EdgeInsets.only(bottom: 10),
 
                           padding: const EdgeInsets.symmetric(
                             horizontal: 14,
@@ -425,9 +394,7 @@ Future<void> gravarAudio() async {
                                 ? null
                                 : [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(
-                                        0.05,
-                                      ),
+                                      color: Colors.black.withOpacity(0.05),
                                       blurRadius: 5,
                                       offset: const Offset(0, 2),
                                     ),
@@ -435,25 +402,20 @@ Future<void> gravarAudio() async {
                           ),
 
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
 
                             children: [
                               // NOME
                               if (!minhaMensagem)
                                 Padding(
-                                  padding:
-                                      const EdgeInsets.only(
-                                        bottom: 4,
-                                      ),
+                                  padding: const EdgeInsets.only(bottom: 4),
 
                                   child: Text(
                                     nomeAmigavel,
 
                                     style: TextStyle(
                                       fontSize: 12,
-                                      fontWeight:
-                                          FontWeight.bold,
+                                      fontWeight: FontWeight.bold,
 
                                       color: widget.isDark
                                           ? Colors.redAccent
@@ -463,61 +425,42 @@ Future<void> gravarAudio() async {
                                 ),
 
                               // RESPOSTA
-                              if ((msg["respondendoTexto"] ?? "")
-                                  .isNotEmpty)
+                              if ((msg["respondendoTexto"] ?? "").isNotEmpty)
                                 Container(
-                                  margin:
-                                      const EdgeInsets.only(
-                                        bottom: 6,
-                                      ),
+                                  margin: const EdgeInsets.only(bottom: 6),
 
-                                  padding:
-                                      const EdgeInsets.all(8),
+                                  padding: const EdgeInsets.all(8),
 
                                   decoration: BoxDecoration(
                                     color: widget.isDark
                                         ? Colors.black26
                                         : Colors.grey.shade200,
 
-                                    borderRadius:
-                                        BorderRadius.circular(
-                                          10,
-                                        ),
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
 
                                   child: Column(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment
-                                            .start,
+                                        CrossAxisAlignment.start,
 
                                     children: [
                                       Text(
-                                        msg["respondendoNome"] ??
-                                            "",
+                                        msg["respondendoNome"] ?? "",
 
-                                        style:
-                                            const TextStyle(
-                                              fontWeight:
-                                                  FontWeight
-                                                      .bold,
-                                              fontSize: 12,
-                                            ),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
                                       ),
 
                                       Text(
-                                        msg["respondendoTexto"] ??
-                                            "",
+                                        msg["respondendoTexto"] ?? "",
 
                                         maxLines: 2,
 
-                                        overflow:
-                                            TextOverflow
-                                                .ellipsis,
+                                        overflow: TextOverflow.ellipsis,
 
-                                        style:
-                                            const TextStyle(
-                                              fontSize: 12,
-                                            ),
+                                        style: const TextStyle(fontSize: 12),
                                       ),
                                     ],
                                   ),
@@ -526,10 +469,7 @@ Future<void> gravarAudio() async {
                               // IMAGEM
                               if (msg["tipo"] == "imagem")
                                 ClipRRect(
-                                  borderRadius:
-                                      BorderRadius.circular(
-                                        12,
-                                      ),
+                                  borderRadius: BorderRadius.circular(12),
 
                                   child: Image.network(
                                     msg["imagemUrl"],
@@ -541,35 +481,27 @@ Future<void> gravarAudio() async {
                               // AUDIO
                               if (msg["tipo"] == "audio")
                                 Container(
-                                  padding:
-                                      const EdgeInsets.symmetric(
-                                        vertical: 4,
-                                      ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
 
                                   child: Row(
-                                    mainAxisSize:
-                                        MainAxisSize.min,
+                                    mainAxisSize: MainAxisSize.min,
 
                                     children: [
                                       IconButton(
-                                        icon: const Icon(
-                                          Icons.play_arrow,
-                                        ),
+                                        icon: const Icon(Icons.play_arrow),
 
                                         onPressed: () async {
                                           await player.play(
-                                            UrlSource(
-                                              msg["audioUrl"],
-                                            ),
+                                            UrlSource(msg["audioUrl"]),
                                           );
                                         },
                                       ),
 
                                       Text(
                                         "Áudio",
-                                        style: TextStyle(
-                                          color: txt,
-                                        ),
+                                        style: TextStyle(color: txt),
                                       ),
                                     ],
                                   ),
@@ -580,18 +512,14 @@ Future<void> gravarAudio() async {
                                 Text(
                                   texto,
 
-                                  style: TextStyle(
-                                    color: txt,
-                                    fontSize: 15,
-                                  ),
+                                  style: TextStyle(color: txt, fontSize: 15),
                                 ),
 
                               const SizedBox(height: 6),
 
                               // HORA
                               Align(
-                                alignment:
-                                    Alignment.bottomRight,
+                                alignment: Alignment.bottomRight,
 
                                 child: Text(
                                   "${formatarHora(timestamp)} • ${formatarData(timestamp)}",
@@ -619,23 +547,19 @@ Future<void> gravarAudio() async {
           // =========================
           // RESPONDENDO
           // =========================
-
           if (mensagemRespondendo != null)
             Container(
               width: double.infinity,
 
               padding: const EdgeInsets.all(10),
 
-              color: widget.isDark
-                  ? Colors.black54
-                  : Colors.green.shade50,
+              color: widget.isDark ? Colors.black54 : Colors.green.shade50,
 
               child: Row(
                 children: [
                   Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
 
                       children: [
                         Text(
@@ -652,8 +576,7 @@ Future<void> gravarAudio() async {
 
                           maxLines: 1,
 
-                          overflow:
-                              TextOverflow.ellipsis,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -675,27 +598,17 @@ Future<void> gravarAudio() async {
           // =========================
           // INPUT
           // =========================
-
           Container(
-            padding: const EdgeInsets.fromLTRB(
-              10,
-              8,
-              10,
-              12,
-            ),
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
 
             decoration: BoxDecoration(
-              color: widget.isDark
-                  ? const Color(0xFF151515)
-                  : Colors.white,
+              color: widget.isDark ? const Color(0xFF151515) : Colors.white,
 
               boxShadow: widget.isDark
                   ? null
                   : [
                       BoxShadow(
-                        color: Colors.black.withOpacity(
-                          0.05,
-                        ),
+                        color: Colors.black.withOpacity(0.05),
                         blurRadius: 10,
                         offset: const Offset(0, -4),
                       ),
@@ -707,10 +620,7 @@ Future<void> gravarAudio() async {
                 children: [
                   // IMAGEM
                   IconButton(
-                    icon: Icon(
-                      Icons.image,
-                      color: appBarColor,
-                    ),
+                    icon: Icon(Icons.image, color: appBarColor),
 
                     onPressed: enviarImagem,
                   ),
@@ -723,8 +633,7 @@ Future<void> gravarAudio() async {
                             ? const Color(0xFF252525)
                             : const Color(0xFFF2F2F2),
 
-                        borderRadius:
-                            BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(30),
 
                         border: Border.all(
                           color: widget.isDark
@@ -741,8 +650,7 @@ Future<void> gravarAudio() async {
                         style: TextStyle(color: txt),
 
                         decoration: InputDecoration(
-                          hintText:
-                              "Digite uma mensagem...",
+                          hintText: "Digite uma mensagem...",
 
                           hintStyle: TextStyle(
                             color: widget.isDark
@@ -752,11 +660,10 @@ Future<void> gravarAudio() async {
 
                           border: InputBorder.none,
 
-                          contentPadding:
-                              const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 14,
-                              ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
                         ),
                       ),
                     ),
@@ -767,13 +674,9 @@ Future<void> gravarAudio() async {
                   // AUDIO
                   IconButton(
                     icon: Icon(
-                      gravando
-                          ? Icons.stop
-                          : Icons.mic,
+                      gravando ? Icons.stop : Icons.mic,
 
-                      color: gravando
-                          ? Colors.red
-                          : appBarColor,
+                      color: gravando ? Colors.red : appBarColor,
                     ),
 
                     onPressed: gravarAudio,
@@ -787,10 +690,7 @@ Future<void> gravarAudio() async {
                     ),
 
                     child: IconButton(
-                      icon: const Icon(
-                        Icons.send,
-                        color: Colors.white,
-                      ),
+                      icon: const Icon(Icons.send, color: Colors.white),
 
                       onPressed: enviarMensagem,
                     ),
