@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // <-- Adicionado
+import 'package:firebase_auth/firebase_auth.dart'; // <-- Adicionado
 
 class SettingsController extends ChangeNotifier {
   bool isDarkMode = false;
@@ -34,10 +36,21 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- ATUALIZADO: Agora salva a privacidade no Firebase! ---
   Future<void> setPrivacy(bool value) async {
     privacy = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool("privacy", value);
+
+    // Atualiza no banco de dados para os outros usuários não conseguirem acessar
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(user.uid)
+          .update({'perfil_privado': value});
+    }
+
     notifyListeners();
   }
 

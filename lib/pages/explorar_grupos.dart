@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'perfil_publico.dart';
 
 class ExplorarGruposPage extends StatefulWidget {
   final bool isDark;
@@ -349,6 +350,8 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
                 dados['nome_exibicao'] ?? dados['nome'] ?? "Usuário";
             String bio = dados['bio'] ?? "Estudante no Studdy-Buddy";
             String? fotoUrl = dados['url_perfil'];
+            // Verifica a privacidade direto do banco de dados do cara!
+            bool perfilPrivado = dados['perfil_privado'] ?? false;
 
             return Container(
               margin: const EdgeInsets.only(bottom: 15),
@@ -418,13 +421,24 @@ class _ExplorarGruposPageState extends State<ExplorarGruposPage> {
                       ),
                     ),
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Perfil público em desenvolvimento! 🚧",
+                      // SE O CARA FOR PRIVADO, ELE BATE DE CARA NA PORTA
+                      if (perfilPrivado) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Este perfil é privado 🔒"),
+                            backgroundColor: Colors.red,
                           ),
-                        ),
-                      );
+                        );
+                      } else {
+                        // SE NÃO FOR PRIVADO, ELE ABRE O PERFIL PÚBLICO
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                PerfilPublicoPage(userId: userId),
+                          ),
+                        );
+                      }
                     },
                     child: const Text(
                       "Ver Perfil",
