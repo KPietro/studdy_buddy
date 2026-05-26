@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'ranking_semanal.dart';
+import '../controllers/theme_controller.dart'; // <-- Importando o controlador global de tema
 
 class RankingTotal extends StatefulWidget {
-  final String grupoId;
+  final String grupoId; // Recebe o ID do grupo
   const RankingTotal({super.key, required this.grupoId});
 
   @override
@@ -12,30 +13,19 @@ class RankingTotal extends StatefulWidget {
 }
 
 class _RankingTotalState extends State<RankingTotal> {
-  // O tema agora é lido diretamente do widget ou estado, vamos manter sua lógica de isDark
-  bool isTemaEscuro = true;
+  // Variável local de tema removida também!
 
   final Color bgEscuro = const Color(0xFF2B0505);
   final Color baseEscura = const Color(0xFF4A0000);
   final Color bgClaro = const Color(0xFFEAFaf1);
-  final Color baseClara = Colors.green[700]!;
+  final Color baseClara = const Color(0xFF4CAF50);
   final Color verdemeiescuro = const Color.fromRGBO(25, 170, 45, 1);
   final Color verdeNeon = const Color.fromARGB(255, 55, 255, 20);
 
-  // --- SOMBRA SUAVE PARA OS CARDS NO TEMA CLARO ---
-  List<BoxShadow>? get shadowClara => isTemaEscuro
-      ? null
-      : [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ];
-
   @override
   Widget build(BuildContext context) {
-    final bool isDark = isTemaEscuro;
+    // LENDO DIRETAMENTE DO CONFIG GLOBAL!
+    final bool isDark = ThemeController.isDark;
 
     return Scaffold(
       backgroundColor: isDark ? bgEscuro : bgClaro,
@@ -53,6 +43,7 @@ class _RankingTotalState extends State<RankingTotal> {
             }
 
             final List<Map<String, dynamic>> jogadores = [];
+
             if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
               final docs = snapshot.data!.docs;
               for (int i = 0; i < docs.length; i++) {
@@ -76,7 +67,7 @@ class _RankingTotalState extends State<RankingTotal> {
                       child: Text(
                         'Nenhum membro encontrado.',
                         style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
                       ),
                     ),
@@ -92,15 +83,7 @@ class _RankingTotalState extends State<RankingTotal> {
         ),
       ),
       bottomNavigationBar: _buildBottomBar(isDark, context),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: verdeNeon,
-        mini: true,
-        onPressed: () => setState(() => isTemaEscuro = !isTemaEscuro),
-        child: Icon(
-          isDark ? Icons.light_mode : Icons.dark_mode,
-          color: Colors.black,
-        ),
-      ),
+      // floatingActionButton REMOVIDO DAQUI TAMBÉM!
     );
   }
 
@@ -110,13 +93,10 @@ class _RankingTotalState extends State<RankingTotal> {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: isDark ? const Color(0xFFB30000) : Colors.white,
+            backgroundColor: const Color(0xFFB30000),
             radius: 20,
             child: IconButton(
-              icon: Icon(
-                Icons.arrow_back,
-                color: isDark ? Colors.black : Colors.black87,
-              ),
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -130,7 +110,7 @@ class _RankingTotalState extends State<RankingTotal> {
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: isDark ? Colors.white : Colors.black,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -189,7 +169,7 @@ class _RankingTotalState extends State<RankingTotal> {
           children: [
             CircleAvatar(
               radius: 22,
-              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
+              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[400],
               backgroundImage: temFoto ? NetworkImage(j["fotoPerfil"]) : null,
               child: !temFoto
                   ? const Icon(Icons.person, color: Colors.white)
@@ -225,11 +205,8 @@ class _RankingTotalState extends State<RankingTotal> {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: isDark ? Colors.black : Colors.white,
-            border: Border.all(
-              color: isDark ? Colors.white24 : Colors.transparent,
-            ),
-            boxShadow: shadowClara, // Aplicação da sombra premium
-            borderRadius: BorderRadius.circular(5),
+            border: Border.all(color: Colors.white24),
+            borderRadius: BorderRadius.circular(3),
           ),
           child: Row(
             children: [
@@ -245,14 +222,14 @@ class _RankingTotalState extends State<RankingTotal> {
                     : Text(
                         '#${j["posicao"]}',
                         style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: isDark ? Colors.white : Colors.black,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
               ),
               CircleAvatar(
                 radius: 12,
-                backgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
+                backgroundColor: Colors.grey,
                 backgroundImage: temFoto ? NetworkImage(j["fotoPerfil"]) : null,
                 child: !temFoto
                     ? const Icon(Icons.person, size: 15, color: Colors.white)
@@ -262,11 +239,10 @@ class _RankingTotalState extends State<RankingTotal> {
               Expanded(
                 child: Text(
                   j["nome"],
-                  style: TextStyle(
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
                 ),
               ),
+
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -337,7 +313,6 @@ class _RankingTotalState extends State<RankingTotal> {
 }
 
 class PillarPainter extends CustomPainter {
-  // (Lógica do painter mantida igual, só garantir que funciona em ambos os temas)
   final double altura;
   final Color colorFront;
   final Color colorSide;

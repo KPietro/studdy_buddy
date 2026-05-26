@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'ranking_total.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import '../controllers/theme_controller.dart'; // <-- Importando o controlador global de tema
 
 class RankingSemanal extends StatefulWidget {
   final String grupoId;
@@ -12,29 +13,20 @@ class RankingSemanal extends StatefulWidget {
 }
 
 class _RankingSemanalState extends State<RankingSemanal> {
-  bool isTemaEscuro = true;
+  // Variável local de tema removida! Vamos usar a do ThemeController.
 
   final Color bgEscuro = const Color(0xFF2B0505);
   final Color baseEscura = const Color(0xFF4A0000);
   final Color bgClaro = const Color(0xFFEAFaf1);
-  final Color baseClara = const Color(0xFF388E3C); // Colors.green[700] ajustado
+  final Color baseClara = const Color(0xFF4CAF50);
   final Color verdemeiescuro = const Color.fromRGBO(25, 170, 45, 1);
+  // Mantido caso você decida usar a cor verde neon em outro lugar
   final Color verdeNeon = const Color.fromARGB(255, 55, 255, 20);
-
-  // --- SOMBRA SUAVE ---
-  List<BoxShadow>? get shadowClara => isTemaEscuro
-      ? null
-      : [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ];
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = isTemaEscuro;
+    // LENDO DIRETAMENTE DO CONFIG GLOBAL!
+    final bool isDark = ThemeController.isDark;
 
     return Scaffold(
       backgroundColor: isDark ? bgEscuro : bgClaro,
@@ -76,7 +68,7 @@ class _RankingSemanalState extends State<RankingSemanal> {
                       child: Text(
                         'Nenhum membro neste grupo.',
                         style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
                       ),
                     ),
@@ -92,15 +84,7 @@ class _RankingSemanalState extends State<RankingSemanal> {
         ),
       ),
       bottomNavigationBar: _buildBottomBar(isDark, context),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: verdeNeon,
-        mini: true,
-        onPressed: () => setState(() => isTemaEscuro = !isTemaEscuro),
-        child: Icon(
-          isDark ? Icons.light_mode : Icons.dark_mode,
-          color: Colors.black,
-        ),
-      ),
+      // floatingActionButton REMOVIDO DAQUI!
     );
   }
 
@@ -110,13 +94,10 @@ class _RankingSemanalState extends State<RankingSemanal> {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: isDark ? const Color(0xFFB30000) : Colors.white,
+            backgroundColor: const Color(0xFFB30000),
             radius: 20,
             child: IconButton(
-              icon: Icon(
-                Icons.arrow_back,
-                color: isDark ? Colors.black : Colors.black87,
-              ),
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -125,11 +106,11 @@ class _RankingSemanalState extends State<RankingSemanal> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Ranking Semanal',
+                  '  Ranking Semanal',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: isDark ? Colors.white : Colors.black,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -182,7 +163,7 @@ class _RankingSemanalState extends State<RankingSemanal> {
           children: [
             CircleAvatar(
               radius: 22,
-              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
+              backgroundColor: isDark ? Colors.grey[800] : Colors.grey[400],
               backgroundImage: temFoto ? NetworkImage(j["fotoPerfil"]) : null,
               child: !temFoto
                   ? const Icon(Icons.person, color: Colors.white)
@@ -218,11 +199,8 @@ class _RankingSemanalState extends State<RankingSemanal> {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: isDark ? Colors.black : Colors.white,
-            border: Border.all(
-              color: isDark ? Colors.white24 : Colors.transparent,
-            ),
-            boxShadow: shadowClara, // Sombrinha nos itens da lista
-            borderRadius: BorderRadius.circular(5),
+            border: Border.all(color: Colors.white24),
+            borderRadius: BorderRadius.circular(3),
           ),
           child: Row(
             children: [
@@ -237,16 +215,14 @@ class _RankingSemanalState extends State<RankingSemanal> {
                       )
                     : Text(
                         '#${j["posicao"]}',
-                        textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: isDark ? Colors.white : Colors.black,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
               ),
               CircleAvatar(
                 radius: 12,
-                backgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
                 backgroundImage: temFoto ? NetworkImage(j["fotoPerfil"]) : null,
                 child: !temFoto
                     ? const Icon(Icons.person, size: 15, color: Colors.white)
@@ -256,9 +232,7 @@ class _RankingSemanalState extends State<RankingSemanal> {
               Expanded(
                 child: Text(
                   j["nome"],
-                  style: TextStyle(
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
                 ),
               ),
 
